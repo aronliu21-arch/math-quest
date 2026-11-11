@@ -1,0 +1,11 @@
+{
+  "name": "math-quest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/mathgen.test.mjs && node tests/room.test.mjs && node scripts/check-shared.mjs",
+    "e2e": "node tests/e2e.cjs && node tests/mp-e2e.cjs",
+    "start": "node server/dev-server.mjs",
+    "sync-shared": "node scripts/sync-shared.mjs"
+  }
+}

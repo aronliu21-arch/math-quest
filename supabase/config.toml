@@ -1,0 +1,3 @@
+# Minimal Supabase CLI config for Math Quest. `supabase link` fills in the project.
+[functions.room]
+verify_jwt = true
