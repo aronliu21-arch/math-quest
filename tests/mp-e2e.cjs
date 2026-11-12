@@ -3,8 +3,12 @@
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const path = require('path');
+// MODE=p2p tests the zero-setup direct mode: a plain static server (no game API)
+// plus a local PeerJS signaling server standing in for the public one.
+const P2P = process.env.MODE === 'p2p';
 const PORT = 9000 + Math.floor(Math.random() * 900);
-const BASE = `http://localhost:${PORT}/?nosw`;
+const PEER_PORT = PORT + 1000;
+const BASE = `http://localhost:${PORT}/?nosw${P2P ? `&peer=127.0.0.1:${PEER_PORT}` : ''}`;
 let fails = 0; const check = (c, m) => { console.log(c ? '  ✔' : '  ✘', m); if (!c) fails++; };
 async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
   const ctx = await b.newContext({ viewport: vp, reducedMotion: 'reduce' });
@@ -18,8 +22,13 @@ async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
   return { ctx, pg };
 }
 (async () => {
-  const server = spawn(process.execPath, [path.join(__dirname, '..', 'server', 'dev-server.mjs')], { env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore' });
-  await new Promise((r) => setTimeout(r, 800));
+  const root = path.join(__dirname, '..');
+  const procs = P2P
+    ? [spawn('python3', ['-m', 'http.server', String(PORT)], { cwd: root, stdio: 'ignore' }),
+      spawn(process.execPath, [path.join(process.env.PEER_MODULES || path.join(root, 'node_modules'), 'peer', 'dist', 'bin', 'peerjs.js'), '--port', String(PEER_PORT), '--host', '127.0.0.1', '--path', '/'], { stdio: 'ignore' })]
+    : [spawn(process.execPath, [path.join(root, 'server', 'dev-server.mjs')], { env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore' })];
+  const server = { kill: () => procs.forEach((p) => p.kill()) };
+  await new Promise((r) => setTimeout(r, 1500));
   const b = await chromium.launch(); const errs = [];
   const A = await device(b, 'Ava', errs);
   const B = await device(b, 'Ben', errs, { width: 390, height: 844 });
@@ -92,6 +101,7 @@ async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
   check(back[0] && back[1], 'host sees the player back online');
   await B2.screenshot({ path: path.join(__dirname, '..', 'test-output', '26-B-rejoined.png') });
   check(!errs.length, 'no page errors ' + errs.join(' | '));
+  if (P2P) console.log('  (mode: direct peer-to-peer)');
   await b.close(); server.kill();
   process.exit(fails ? 1 : 0);
 })();

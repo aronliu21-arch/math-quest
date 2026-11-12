@@ -231,7 +231,7 @@ export const STR = {
   // multiplayer
   mpTitle: ['Team Adventure', '組隊冒險'],
   mpNeedsInternet: ['Team play needs the internet. Single-player works offline.', '組隊冒險需要網路。單人模式離線也能玩。'],
-  mpNotConfigured: ['Team play is not set up yet. A grown-up needs to connect a free Supabase project (see README).', '組隊功能還沒設定。請大人依照說明連接免費的 Supabase 專案。'],
+  mpNotConfigured: ['Team play needs a newer browser. Try the latest Safari or Chrome.', '組隊冒險需要較新的瀏覽器，請使用最新版 Safari 或 Chrome。'],
   createRoom: ['Create a room', '建立房間'],
   joinRoom: ['Join a room', '加入房間'],
   roomCode: ['Room code', '房間代碼'],

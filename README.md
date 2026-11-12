@@ -47,7 +47,15 @@ Netlify, Cloudflare Pages and Vercel also work: point them at the repository roo
 
 On the iPad, open the link in Safari, then tap Share → **Add to Home Screen**. The game then opens full-screen like an app.
 
-### 2. Turn on team play across different networks (free Supabase project, browser only)
+### 2. Team play: works with no setup
+
+Team play works straight from the website: one child taps **Create a room**, the others type the 6-character code or scan the QR code. The devices connect **directly to each other** (WebRTC, via the free public PeerJS service for the initial hand-shake and as a relay when networks block direct links). The **host's device is the referee**: it runs exactly the same room logic as the server options below, so answers are still checked away from the other players' devices, but the host device itself is trusted. If the host closes the game, the room pauses until the host comes back (the host's room is saved on that device).
+
+Privacy: the PeerJS service sees the room id and the devices' network addresses during connection; game data flows device-to-device (or through its relay, encrypted by WebRTC). No names or accounts are stored there.
+
+The two options below are only needed if you want a central server instead (for example if the public PeerJS service is down).
+
+### 2b. Optional: central server on Supabase (different networks) (free Supabase project, browser only)
 
 The static site alone gives you single-player. For kids in different houses or on different Wi-Fi networks, add the free Supabase backend. Everything below happens in the web browser; no command-line tools are needed.
 
@@ -83,6 +91,7 @@ If you prefer the command line, the Supabase CLI also works: `supabase link`, `s
 ```bash
 npm test        # question engine (≈74,000 checks), Little Explorer (20,000), server room logic (44), dashboard bundle replay, shared-copy check
 npm run e2e     # headless Chromium: 35 single-player + 11 Little Explorer + 10 two-device multiplayer checks
+npm i --no-save peer && npm run e2e:p2p   # the same two-device checks in direct peer-to-peer mode
 ```
 
 The e2e suites start their own server and save screenshots to `test-output/`.
@@ -118,6 +127,7 @@ tests/                         unit + browser tests
 
 ## Known limits (honest list)
 
+- **Direct (peer-to-peer) team play was tested with a local stand-in for the public PeerJS service, not the real one, and not across two real home networks.** Some strict networks (some schools, offices, mobile carriers) can block it.
 - **The Supabase backend has not been run against a live Supabase project.** The game logic it runs is fully tested through the local server, but the database adapter, Realtime broadcast and deployment steps have not. Please do a two-device test after deploying.
 - Progress is saved **per device**. Stars earned on the iPad do not appear on the MacBook. There is no cloud sync for single-player.
 - Narration quality depends on the device's voices. iPads include a Taiwan Mandarin voice. On computers without a `zh-TW` voice, Chinese narration stays silent rather than using a Mainland accent.
