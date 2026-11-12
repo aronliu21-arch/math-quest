@@ -109,9 +109,9 @@ function shareInput(q, host, submit) {
   let selected = null;
   const node = el(`<div class="share">
     <div class="pile dropzone" data-z="pile"></div>
-    <div class="plates">${Array.from({ length: g }, (_, i) => `<div class="plate dropzone" data-z="${i}"><div class="plate-count"></div></div>`).join('')}
+    <div class="plates">${Array.from({ length: g }, (_, i) => `<div class="plate dropzone" data-z="${i}">${q.plateArt ? `<div class="plate-art">${q.plateArt}</div>` : ''}<div class="plate-count"></div></div>`).join('')}
     ${q.leftover ? `<div class="plate leftover dropzone" data-z="left"><span class="lz">${L({ en: 'Leftover', zh: '剩下' })}</span><div class="plate-count"></div></div>` : ''}</div>
-    <div class="row gap"><button class="btn ghost reset">${t('resetPuzzle')}</button><button class="btn big check">${t('check')} ✓</button></div>
+    <div class="row gap"><button class="btn ghost reset" aria-label="${t('resetPuzzle')}">${q.autoCheck ? '↺' : t('resetPuzzle')}</button>${q.autoCheck ? '' : `<button class="btn big check">${t('check')} ✓</button>`}</div>
   </div>`);
   host.appendChild(node);
   const zones = {};
@@ -125,7 +125,20 @@ function shareInput(q, host, submit) {
     $$('.plate', node).forEach((p) => { const c = loc.filter((x) => String(x) === p.dataset.z).length; $('.plate-count', p).textContent = c || ''; });
   };
   draw();
-  const move = (i, z) => { loc[i] = z === 'pile' ? 'pile' : z === 'left' ? 'left' : +z; selected = null; sfx('drop'); draw(); };
+  const move = (i, z) => {
+    loc[i] = z === 'pile' ? 'pile' : z === 'left' ? 'left' : +z; selected = null; sfx('drop'); draw();
+    if (q.autoCheck && !loc.includes('pile')) setTimeout(doCheck, 350); // little ones: no Check button needed
+  };
+  function doCheck() {
+    if (node.classList.contains('locked')) return;
+    if (loc.includes('pile')) { toast(L({ en: 'Place all of them first!', zh: '先把全部放好喔！' }), 'info'); return; }
+    const counts = Array.from({ length: g }, (_, p) => loc.filter((x) => x === p).length);
+    const left = loc.filter((x) => x === 'left').length;
+    const equal = counts.every((c) => c === counts[0]);
+    if (equal && q.leftover && left >= g) { toast(L({ en: `There are enough leftovers to give every plate one more!`, zh: '剩下的還夠每一份再多放一個喔！' }), 'info', 2600); return; }
+    if (!equal) { submit({ t: 'n', v: -1 }, null, { msg: { en: 'Some plates have more than others. Make them all equal!', zh: '有些盤子比較多，要讓每一份都一樣多！' } }); return; }
+    submit(q.leftover ? qr(counts[0], left) : num(counts[0]));
+  }
 
   // pointer drag
   let drag = null;
@@ -171,18 +184,10 @@ function shareInput(q, host, submit) {
       if (i >= 0) move(i, z.dataset.z);
     }
     if (e.target.closest('.reset')) { loc.fill('pile'); selected = null; draw(); }
-    if (e.target.closest('.check')) {
-      if (loc.includes('pile')) { toast(L({ en: 'Place all of them first!', zh: '先把全部放好喔！' }), 'info'); return; }
-      const counts = Array.from({ length: g }, (_, p) => loc.filter((x) => x === p).length);
-      const left = loc.filter((x) => x === 'left').length;
-      const equal = counts.every((c) => c === counts[0]);
-      if (equal && q.leftover && left >= g) { toast(L({ en: `There are enough leftovers to give every plate one more!`, zh: '剩下的還夠每一份再多放一個喔！' }), 'info', 2600); return; }
-      if (!equal) { submit({ t: 'n', v: -1 }, null, { msg: { en: 'Some plates have more than others. Make them all equal!', zh: '有些盤子比較多，要讓每一份都一樣多！' } }); return; }
-      submit(q.leftover ? qr(counts[0], left) : num(counts[0]));
-    }
+    if (e.target.closest('.check')) doCheck();
   });
   return {
-    wrong() { node.classList.add('shake'); setTimeout(() => node.classList.remove('shake'), 500); },
+    wrong() { node.classList.add('shake'); setTimeout(() => node.classList.remove('shake'), 500); if (q.autoCheck) { loc.fill('pile'); draw(); } },
     lock() { node.classList.add('locked'); },
     reveal() {
       // show the correct sharing

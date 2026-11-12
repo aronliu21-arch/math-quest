@@ -362,3 +362,63 @@ export function decorSVG(k, size = 40) { return `<svg viewBox="0 0 40 40" width=
 export function sparkleBurst(n = 14) {
   return Array.from({ length: n }, (_, i) => `<span class="spark" style="--a:${(i / n) * 360}deg;--d:${60 + (i % 4) * 25}px;--c:${['#ffd43b', '#ff8787', '#74c0fc', '#b197fc', '#8ce99a'][i % 5]}"></span>`).join('');
 }
+
+// ---------------- Little Explorer: dinosaurs, eggs, nests ----------------
+export const DINO_STICKERS = [
+  { c: '#69db7c', s: '#2b8a3e', name: ['Stompy', '咚咚龍'] },
+  { c: '#ff922b', s: '#d9480f', name: ['Roary', '吼吼龍'] },
+  { c: '#74c0fc', s: '#1864ab', name: ['Splashy', '水花龍'] },
+  { c: '#b197fc', s: '#5f3dc4', name: ['Spiky', '尖尖龍'] },
+  { c: '#ffd43b', s: '#e67700', name: ['Sunny', '太陽龍'] },
+  { c: '#ff8787', s: '#c92a2a', name: ['Cherry', '櫻桃龍'] },
+  { c: '#63e6be', s: '#087f5b', name: ['Minty', '薄荷龍'] },
+  { c: '#f783ac', s: '#a61e4d', name: ['Bubbles', '泡泡龍'] },
+  { c: '#a9e34b', s: '#5c940d', name: ['Leafy', '葉子龍'] },
+  { c: '#ffa8a8', s: '#e8590c', name: ['Peachy', '蜜桃龍'] },
+  { c: '#91a7ff', s: '#364fc7', name: ['Starry', '星星龍'] },
+  { c: '#ced4da', s: '#495057', name: ['Rocky', '石頭龍'] },
+];
+
+export function dinoSVG(i = 0, size = 80, { happy = true, flip = false } = {}) {
+  const d = DINO_STICKERS[((i % DINO_STICKERS.length) + DINO_STICKERS.length) % DINO_STICKERS.length];
+  return `<svg class="dino" viewBox="0 0 120 100" width="${size}" height="${size * 0.83}" aria-hidden="true"${flip ? ' style="transform:scaleX(-1)"' : ''}>
+  <ellipse cx="58" cy="94" rx="40" ry="5" fill="#000" opacity=".15"/>
+  <path d="M30 62 C14 62 6 72 2 82 C14 78 22 76 34 74 Z" fill="${d.c}" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/>
+  ${[0, 1, 2, 3].map((k) => `<path d="M${36 + k * 11} ${42 - k * 2} l6 -10 l6 10 z" fill="${d.s}" stroke="${OL}" stroke-width="2.5" stroke-linejoin="round"/>`).join('')}
+  <ellipse cx="56" cy="64" rx="28" ry="22" fill="${d.c}" stroke="${OL}" stroke-width="3"/>
+  <ellipse cx="58" cy="70" rx="16" ry="12" fill="#fff" opacity=".45"/>
+  <rect x="40" y="78" width="11" height="15" rx="5" fill="${d.c}" stroke="${OL}" stroke-width="3"/><rect x="62" y="78" width="11" height="15" rx="5" fill="${d.c}" stroke="${OL}" stroke-width="3"/>
+  <path d="M74 52 C76 34 84 24 98 24 C112 24 118 34 116 44 C114 54 104 58 92 58 C84 58 78 58 74 52 Z" fill="${d.c}" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="98" cy="36" r="6" fill="#fff" stroke="${OL}" stroke-width="2"/><circle cx="99.5" cy="37" r="3.4" fill="${OL}"/><circle cx="100.5" cy="35.5" r="1.2" fill="#fff"/>
+  ${happy ? `<path d="M100 48 C105 52 110 51 113 47" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round"/>` : `<path d="M102 50 L112 50" stroke="${OL}" stroke-width="2.5" stroke-linecap="round"/>`}
+  <ellipse cx="90" cy="46" rx="4" ry="2.5" fill="#ff8787" opacity=".6"/>
+  <path d="M80 60 C84 66 86 68 90 66" fill="none" stroke="${OL}" stroke-width="3" stroke-linecap="round"/>
+</svg>`;
+}
+
+export function eggSVG(size = 34, i = 0) {
+  const c = ['#fff3bf', '#d3f9d8', '#e7f5ff', '#fff0f6'][i % 4];
+  return `<svg viewBox="0 0 40 48" width="${size}" height="${size * 1.2}" aria-hidden="true"><path d="M20 3 C8 3 3 22 3 30 C3 40 11 45 20 45 C29 45 37 40 37 30 C37 22 32 3 20 3 Z" fill="${c}" stroke="${OL}" stroke-width="2.5"/><circle cx="14" cy="22" r="3" fill="#69db7c"/><circle cx="25" cy="31" r="3.5" fill="#74c0fc"/><circle cx="24" cy="15" r="2" fill="#ff8787"/></svg>`;
+}
+
+// Two-piece shape for "find the halves": cut at `cut` (0.5 = fair halves).
+// The two pieces are pulled apart and colored so the size difference is easy to see.
+export function splitSVG(shape, cut, size = 200) {
+  const gap = 10;
+  if (shape === 'pie') {
+    // pizza cut by a vertical line at x; pieces pushed apart
+    const r = 50; const x = 60 + (cut - 0.5) * 2 * r * 0.95; const dy = Math.sqrt(Math.max(0, r * r - (x - 60) ** 2));
+    const large = (side) => (side === 'L' ? (x > 60 ? 1 : 0) : (x < 60 ? 1 : 0));
+    const left = `M${x} ${60 - dy} A${r} ${r} 0 ${large('L')} 0 ${x} ${60 + dy} Z`;
+    const right = `M${x} ${60 - dy} A${r} ${r} 0 ${large('R')} 1 ${x} ${60 + dy} Z`;
+    return `<svg viewBox="-12 0 144 120" width="${size}" height="${size * 120 / 144}" aria-hidden="true">
+      <g transform="translate(${-gap / 2} 0)"><path d="${left}" fill="#ffd43b" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/><circle cx="${Math.min(x - 12, 40)}" cy="50" r="5" fill="#e03131"/></g>
+      <g transform="translate(${gap / 2} 0)"><path d="${right}" fill="#ffa94d" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/><circle cx="${Math.max(x + 12, 80)}" cy="70" r="5" fill="#e03131"/></g></svg>`;
+  }
+  const w = 160; const h = shape === 'sandwich' ? 70 : 54; const inner = w - 20 - gap; const lw = inner * cut;
+  const c1 = shape === 'sandwich' ? '#f5d39a' : '#a0522d'; const c2 = shape === 'sandwich' ? '#ffe8a3' : '#c97a40';
+  const deco = (x0, ww) => (shape === 'sandwich' ? `<rect x="${x0 + 3}" y="${10 + h * 0.42}" width="${ww - 6}" height="8" fill="#69db7c"/><rect x="${x0 + 3}" y="${10 + h * 0.42 + 8}" width="${ww - 6}" height="6" fill="#ff8787"/>` : '');
+  return `<svg viewBox="0 0 ${w} ${h + 20}" width="${size}" height="${size * (h + 20) / w}" aria-hidden="true">
+    <rect x="10" y="10" width="${lw}" height="${h}" rx="8" fill="${c1}" stroke="${OL}" stroke-width="3"/>${deco(10, lw)}
+    <rect x="${10 + lw + gap}" y="10" width="${inner - lw}" height="${h}" rx="8" fill="${c2}" stroke="${OL}" stroke-width="3"/>${deco(10 + lw + gap, inner - lw)}</svg>`;
+}

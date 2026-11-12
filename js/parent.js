@@ -8,6 +8,7 @@ import { heroSVG, sceneSVG } from './art.js';
 import { CONCEPTS, skillOf, conceptLevels } from '../shared/mathgen.js';
 import { conceptMastery, levelOf, skillMastery, suggestions, newLearning } from './adaptive.js';
 import { sfx } from './audio.js';
+import { LITTLE_KINDS, LITTLE_NAMES } from '../shared/littlegen.js';
 
 // Gate: a 3-digit × 2-digit multiplication on an on-screen keypad. New question after a wrong answer.
 export function parentGate(onPass) {
@@ -26,6 +27,14 @@ export function parentGate(onPass) {
     } else if (val.length < 6) val += k;
     draw();
   });
+}
+
+function littleSection(p) {
+  const lt = p.little || { stats: {}, lvl: {}, stickers: [] };
+  const rows = LITTLE_KINDS.map((k) => { const s2 = lt.stats[k] || { a: 0, ft: 0 }; return `<tr><td>${L(LITTLE_NAMES[k])}</td><td>${s2.a ? Math.round((s2.ft / s2.a) * 100) + '%' : '–'}</td><td>${s2.a}</td><td>${(lt.lvl[k] || 1) >= 2 ? '⬆︎ 2' : '1'}</td></tr>`; }).join('');
+  return `<div class="card pad"><h3>🦖 ${L({ en: 'Little Explorer (age 3)', zh: '小小探險家（3 歲）' })} · 📒 ${lt.stickers.length}</h3>
+    <table class="mtable"><thead><tr><th></th><th>${t('firstTry')}</th><th>#</th><th>${t('level')}</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="small">${L({ en: 'Counting to 5 (then 8), adding within 4 (then 5), fair sharing, halves and "more". Each activity steps up after 4 of the last 5 are right on the first try.', zh: '數到 5（再到 8）、4 以內加法（再到 5）、公平分配、一半、比多少。最近 5 題答對 4 題就會升級。' })}</p></div>`;
 }
 
 function fmtMin(ms) { return `${Math.round(ms / 60000)} ${t('minutes')}`; }
@@ -82,9 +91,10 @@ register('parent', ({ tab = 'dash', pid } = {}) => {
         <div class="card stat"><b>${qAll ? Math.round((ftAll / qAll) * 100) : 0}%</b><span>${t('firstTryAcc')}</span></div>
       </div>
       <div class="card pad"><h3>${t('learningHistory')}</h3>${historyChart(Ln)}</div>
-      <div class="card pad"><h3>➗ ${t('division')} — ${t(['beginner', 'intermediate', 'advanced'][levelOf(Ln.skill.div) - 1])} · ${t('mastery')} ${Math.round(skillMastery(Ln, 'div') * 100)}%</h3>
+      ${p.style === 'little' ? littleSection(p) : ''}
+      <div class="card pad" ${p.style === 'little' ? 'hidden' : ''}><h3>➗ ${t('division')} — ${t(['beginner', 'intermediate', 'advanced'][levelOf(Ln.skill.div) - 1])} · ${t('mastery')} ${Math.round(skillMastery(Ln, 'div') * 100)}%</h3>
         <table class="mtable"><thead><tr><th></th><th>${t('mastery')}</th><th>${t('firstTry')}</th><th>#</th><th></th></tr></thead><tbody>${rows('div')}</tbody></table></div>
-      <div class="card pad"><h3>🍕 ${t('fractions')} — ${t(['beginner', 'intermediate', 'advanced'][levelOf(Ln.skill.frac) - 1])} · ${t('mastery')} ${Math.round(skillMastery(Ln, 'frac') * 100)}%</h3>
+      <div class="card pad" ${p.style === 'little' ? 'hidden' : ''}><h3>🍕 ${t('fractions')} — ${t(['beginner', 'intermediate', 'advanced'][levelOf(Ln.skill.frac) - 1])} · ${t('mastery')} ${Math.round(skillMastery(Ln, 'frac') * 100)}%</h3>
         <table class="mtable"><thead><tr><th></th><th>${t('mastery')}</th><th>${t('firstTry')}</th><th>#</th><th></th></tr></thead><tbody>${rows('frac')}</tbody></table></div>
       <div class="card pad two-col">
         <div><h3>🏅 ${t('conceptsMastered')}</h3>${mastered.length ? `<ul>${mastered.map((c) => `<li>${L(CONCEPTS[c].name)}</li>`).join('')}</ul>` : `<p class="small">${t('none')}</p>`}</div>
@@ -120,7 +130,7 @@ register('parent', ({ tab = 'dash', pid } = {}) => {
       for (const id of ids) {
         const old = profiles.find((x) => x.id === id);
         // Clear everything for this hero but keep the name + look so they can start fresh.
-        const fresh = newProfile({ name: old.name, avatar: { ...old.avatar, hat: null, cape: null, held: null }, pet: Object.keys(old.pets).sort((a, b) => old.pets[a].found - old.pets[b].found)[0] || 'divi', lang: old.settings.lang });
+        const fresh = newProfile({ name: old.name, avatar: { ...old.avatar, hat: null, cape: null, held: null }, pet: Object.keys(old.pets).sort((a, b) => old.pets[a].found - old.pets[b].found)[0] || 'divi', lang: old.settings.lang, style: old.style || null });
         fresh.id = old.id; fresh.created = old.created;
         await save(fresh);
         if (S.profile && S.profile.id === id) S.profile = fresh;

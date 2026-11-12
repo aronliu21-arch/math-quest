@@ -18,6 +18,7 @@ Single-player works right away. Team play also works on the same home Wi-Fi: on 
 
 | Area | What it does |
 |---|---|
+| **Little Explorer (age 3)** | Pick the 🦖 #3 look when creating a hero to get a voice-first dinosaur mode with giant picture buttons and almost no reading. Five activities: counting dinosaurs, adding with pictures, sharing cookies fairly (drag or tap, no Check button), finding equal halves, and "which nest has more". Two tries with a spoken hint, then the answer is shown kindly. Each activity steps up after 4 of the last 5 are right first time. Every round of 5 earns a dinosaur sticker (12 to collect). Parents see a separate Little Explorer table in the dashboard. |
 | **Profiles** | Several kids on one device. Each has their own hero look, pets, XP, coins, gems, achievements, language, and learning record. Saved in IndexedDB on that device. |
 | **Bilingual** | Every menu, question, hint, explanation and reward is in English and Traditional Chinese (Taiwan wording). Optional zhuyin (注音) appears beside the Chinese, using the open-source *Bpmf Huninn* font. Narration uses the device's `zh-TW` and `en-US` voices. |
 | **4 worlds** | Division Village 除法村, Fraction Forest 分數森林, Math Kingdom 數學王國 (unlocks at hero level 3), Legendary Math Dimension 傳說數學次元 (unlocks at hero level 8, or once either skill reaches Advanced). |
@@ -82,7 +83,7 @@ The static site alone gives you single-player. For kids in different houses or o
 
 ```bash
 npm test        # question engine (≈74,000 checks), server room logic (43 checks), shared-copy check
-npm run e2e     # headless Chromium: 34 single-player checks + 10 two-device multiplayer checks
+npm run e2e     # headless Chromium: 35 single-player + 11 Little Explorer + 10 two-device multiplayer checks
 ```
 
 The e2e suites start their own server and save screenshots to `test-output/`.

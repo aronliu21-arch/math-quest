@@ -61,6 +61,7 @@ export function sfx(name) {
     case 'drop': tone(N(79), t, 0.1, { type: 'sine', vol: 0.15, slide: N(84) }); break;
     case 'whoosh': noise(t, 0.3, 0.15, null, 2500); break;
     case 'tick': tone(1200, t, 0.03, { type: 'square', vol: 0.05 }); break;
+    case 'roar': tone(180, t, 0.6, { type: 'sawtooth', vol: 0.16, slide: 70 }); tone(240, t, 0.5, { type: 'square', vol: 0.06, slide: 90 }); noise(t, 0.5, 0.12, null, 600); break;
     case 'join': tone(N(76), t, 0.12, { type: 'triangle', vol: 0.2 }); tone(N(83), t + 0.1, 0.2, { type: 'triangle', vol: 0.2 }); break;
     default: break;
   }

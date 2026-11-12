@@ -14,6 +14,7 @@ import './world.js';
 import './meta.js';
 import './parent.js';
 import './mp.js';
+import './little.js';
 
 // ---------------- title ----------------
 register('title', () => {
@@ -57,7 +58,7 @@ register('profiles', () => {
     ${!db.persistent ? `<div class="warn">${t('storageWarning')}</div>` : ''}
   </div>`);
   bindActions(node, {
-    pick: async (id) => { const p = S.profiles.find((x) => x.id === id); await selectProfile(p); go('hub'); },
+    pick: async (id) => { const p = S.profiles.find((x) => x.id === id); await selectProfile(p); go(p.style === 'little' ? 'little' : 'hub'); },
     new: () => go('create'),
     parents: () => parentGate(() => go('parent')),
     reset: () => parentGate(() => go('parent', { tab: 'reset' })),
@@ -73,6 +74,8 @@ register('profiles', () => {
 const PRESETS = {
   ponytail9: { avatar: { hair: 'ponytail', hairColor: '#1b1b1f', skin: SKINS[1], outfit: '#1c7ed6', badge: '#7048e8', number: 9 }, style: 'older', startDiv: 2, startFrac: 1 },
   spiky6: { avatar: { hair: 'spiky', hairColor: '#1b1b1f', skin: SKINS[1], outfit: '#1c7ed6', badge: '#f76707', number: 6 }, style: 'younger', startDiv: 1, startFrac: 1 },
+  // Little Explorer (age 3): dinosaur mode — counting, sharing, halves; voice-first
+  dino3: { avatar: { hair: 'short', hairColor: '#1b1b1f', skin: SKINS[1], outfit: '#1c7ed6', badge: '#2f9e44', number: 3, hat: 'dino' }, style: 'little', startDiv: 1, startFrac: 1 },
 };
 register('create', () => {
   const draft = { name: '', avatar: { hair: 'short', hairColor: HAIR_COLORS[0], skin: SKINS[1], outfit: '#1c7ed6', badge: BADGES[0], number: '' }, pet: null, lang: getLang(), startDiv: 1, startFrac: 1 };
@@ -92,7 +95,7 @@ register('create', () => {
       body = `<h2>${t('designHero')}</h2>
         <div class="designer"><div class="preview">${heroSVG(draft.avatar, { size: 150, glow: true })}<div class="name-badge" style="background:${draft.avatar.badge}">${esc(draft.name)}</div></div>
         <div class="opts">
-          <div class="opt"><b>${L({ en: 'Quick look', zh: '快速造型' })}</b><div class="hair-row">${Object.entries(PRESETS).map(([k, v]) => `<button class="hair-btn preset ${draft.preset === k ? 'on' : ''}" data-act="preset" data-arg="${k}" aria-label="${k}">${heroSVG(v.avatar, { size: 44 })}<span class="small">#${v.avatar.number}</span></button>`).join('')}</div></div>
+          <div class="opt"><b>${L({ en: 'Quick look', zh: '快速造型' })}</b><div class="hair-row">${Object.entries(PRESETS).map(([k, v]) => `<button class="hair-btn preset ${draft.preset === k ? 'on' : ''}" data-act="preset" data-arg="${k}" aria-label="${k}">${heroSVG(v.avatar, { size: 44 })}<span class="small">${v.style === 'little' ? '🦖' : ''}#${v.avatar.number}</span></button>`).join('')}</div></div>
           <div class="opt"><b>${t('hair')}</b><div class="hair-row">${HAIR_STYLES.map((h) => `<button class="hair-btn ${draft.avatar.hair === h ? 'on' : ''}" data-act="set" data-arg="hair|${h}">${heroSVG({ ...draft.avatar, hair: h }, { size: 44 })}</button>`).join('')}</div></div>
           <div class="opt"><b>${t('hairColor')}</b>${swatches('hairColor', HAIR_COLORS)}</div>
           <div class="opt"><b>${t('skin')}</b>${swatches('skin', SKINS)}</div>
@@ -112,7 +115,7 @@ register('create', () => {
     const canNext = (step === 0 && draft.name.trim()) || step === 1 || (step === 2 && draft.pet) || step === 3;
     box.innerHTML = `<div class="steps-dots">${[0, 1, 2, 3].map((i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>${body}
       <div class="row gap between"><button class="btn ghost" data-act="prev">${t('back')}</button>
-      <button class="btn big" data-act="next" ${canNext ? '' : 'disabled'}>${step === 3 ? t('letsGo') : t('next')} ▶</button></div>`;
+      <button class="btn big" data-act="next" ${canNext ? '' : 'disabled'}>${step === 3 || (step === 2 && draft.style === 'little') ? t('letsGo') : t('next')} ▶</button></div>`;
     const inp = $('.name-input', box);
     if (inp) inp.addEventListener('input', () => { draft.name = inp.value; $('[data-act="next"]', box).disabled = !draft.name.trim(); });
   };
@@ -120,16 +123,16 @@ register('create', () => {
   bindActions(node, {
     name: (n) => { draft.name = n; draw(); },
     lang: (l) => { draft.lang = l; setLang(l); draw(); },
-    preset: (k) => { const v = PRESETS[k]; draft.preset = k; draft.avatar = { ...draft.avatar, ...v.avatar }; draft.style = v.style; draft.startDiv = v.startDiv; draft.startFrac = v.startFrac; draw(); },
+    preset: (k) => { const v = PRESETS[k]; draft.preset = k; draft.avatar = { ...draft.avatar, hat: null, ...v.avatar }; draft.style = v.style; draft.startDiv = v.startDiv; draft.startFrac = v.startFrac; draw(); },
     set: (arg) => { const [k, v] = arg.split('|'); draft.avatar[k] = k === 'number' ? (v === '' ? '' : +v) : v; draw(); },
     pet: (s) => { draft.pet = s; draw(); },
     lvl: (arg) => { const [k, v] = arg.split('|'); draft[k] = +v; draw(); },
     prev: () => { if (step === 0) go('profiles'); else { step--; draw(); } },
     next: async () => {
-      if (step < 3) { step++; draw(); return; }
+      if (step < 3 && !(step === 2 && draft.style === 'little')) { step++; draw(); return; }
       const p = newProfile({ name: draft.name.trim(), avatar: draft.avatar, pet: draft.pet, lang: draft.lang, startDiv: draft.startDiv, startFrac: draft.startFrac, style: draft.style });
       await save(p); await selectProfile(p); confetti(); sfx('levelup');
-      go('hub');
+      go(p.style === 'little' ? 'little' : 'hub');
     },
   });
   return node;
@@ -138,7 +141,8 @@ register('create', () => {
 // ---------------- hub ----------------
 const WORLDS = ['village', 'forest', 'kingdom', 'legend'];
 register('hub', () => {
-  const p = S.profile; if (!p) return go('profiles');
+  const p = S.profile;
+  if (!p || p.style === 'little') { setTimeout(() => go(p ? 'little' : 'profiles', {}, { replace: true }), 0); return el('<div></div>'); }
   applySettings(p); startMusic('menu');
   const daily = ensureDaily(p); save(p);
   const dailyLeft = daily.missions.filter((m) => !m.done).length;

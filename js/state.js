@@ -22,12 +22,12 @@ export function uid() {
 export function newProfile({ name, avatar, pet, lang, startDiv = 1, startFrac = 1, style = null }) {
   const i = Math.floor(Math.random() * BADGES.length);
   return {
-    id: uid(), name: name.slice(0, 20), created: Date.now(),
+    id: uid(), name: name.slice(0, 20), created: Date.now(), style,
     avatar: { hair: 'short', hairColor: '#1b1b1f', skin: '#f6c9a0', outfit: OUTFITS[0], badge: BADGES[i], hat: null, cape: null, held: null, ...avatar },
-    settings: { lang: lang || 'en', zhuyin: true, sound: true, music: true, narration: style ? style === 'younger' : startDiv === 1 && startFrac === 1, hintMode: style === 'older' ? 'ask' : 'auto', timed: true, breakEvery: 0, v: 2 },
+    settings: { lang: lang || 'en', zhuyin: true, sound: true, music: true, narration: style ? style !== 'older' : startDiv === 1 && startFrac === 1, hintMode: style === 'older' ? 'ask' : 'auto', timed: true, breakEvery: 0, v: 2 },
     xp: 0, level: 1, coins: 30, gems: 0,
     pets: { [pet]: { stage: 0, lv: 1, xp: 0, found: Date.now() } }, activePet: pet,
-    owned: { costumes: {}, equipment: {}, decor: { flower: 3, tree: 1 } },
+    owned: { costumes: avatar && avatar.hat ? { [avatar.hat]: Date.now() } : {}, equipment: {}, decor: { flower: 3, tree: 1 } },
     home: { tiles: Array(40).fill(null) },
     learning: newLearning(startDiv, startFrac),
     stats: { missions: 0, answered: 0, firstTry: 0, secondTry: 0, streak: 0, bestStreak: 0, bosses: 0, bossWorlds: {}, secrets: 0, eggs: 0, teamWins: 0, showMe: 0, playMs: 0 },
