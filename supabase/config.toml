@@ -1,3 +1,5 @@
 # Minimal Supabase CLI config for Math Quest. `supabase link` fills in the project.
 [functions.room]
-verify_jwt = true
+# The function authenticates players itself (room tokens), so the gateway's JWT
+# check is off. This also lets the newer "publishable" keys work.
+verify_jwt = false

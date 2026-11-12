@@ -47,25 +47,24 @@ Netlify, Cloudflare Pages and Vercel also work: point them at the repository roo
 
 On the iPad, open the link in Safari, then tap Share → **Add to Home Screen**. The game then opens full-screen like an app.
 
-### 2. Turn on team play across different networks (free Supabase project)
+### 2. Turn on team play across different networks (free Supabase project, browser only)
 
-The static site alone gives you single-player. For kids in different houses or on different Wi-Fi networks, add the Supabase backend:
+The static site alone gives you single-player. For kids in different houses or on different Wi-Fi networks, add the free Supabase backend. Everything below happens in the web browser; no command-line tools are needed.
 
-1. Create a free project at <https://supabase.com>. Children need no account; only you do.
-2. Install the Supabase CLI, then run from this folder:
-   ```bash
-   supabase login
-   supabase link --project-ref <your-project-ref>
-   supabase db push                      # creates the rooms tables
-   npm run sync-shared                   # copies the game logic into the function
-   supabase functions deploy room        # the authoritative game server
-   ```
-3. In the Supabase dashboard, open Project Settings → API. Copy the **Project URL** and the **anon public** key into `js/config.js`:
+1. **Create the project.** Sign up at <https://supabase.com>. Children need no account; only you do. Click **New project**, give it any name and a database password (save it somewhere), pick the region closest to you, and wait about 2 minutes for it to finish.
+2. **Create the tables.** In the left menu, open **SQL Editor**. Paste the whole contents of [`supabase/migrations/20261111000000_rooms.sql`](supabase/migrations/20261111000000_rooms.sql) and click **Run**. It should say "Success. No rows returned".
+3. **Add the game server.** In the left menu, open **Edge Functions** → **Deploy a new function** → **Via Editor**.
+   - Name it exactly `room`.
+   - Delete the sample code, paste the whole contents of [`supabase/dashboard/room-function.ts`](supabase/dashboard/room-function.ts), and click **Deploy**.
+   - Open the function's **Details / Settings** and turn **OFF** "Verify JWT" ("Enforce JWT verification"). The game checks players itself.
+4. **Copy two values.** Open **Project Settings → API (API Keys)**. Copy the **Project URL** and the **anon public** key; on newer projects, use the **publishable** key instead. Both are meant to be public. **Never** share the `service_role` or secret key.
+5. **Paste them into the game.** In `js/config.js`:
    ```js
-   export const MP_CONFIG = { supabaseUrl: 'https://xxxx.supabase.co', supabaseAnonKey: 'eyJ...', devApi: '' };
+   export const MP_CONFIG = { supabaseUrl: 'https://xxxx.supabase.co', supabaseAnonKey: 'eyJ... or sb_publishable_...', devApi: '' };
    ```
-   The anon key is meant to be public. **Never** put the `service_role` key in the website.
-4. Commit and redeploy the static site.
+   Commit, and the site redeploys itself.
+
+If you prefer the command line, the Supabase CLI also works: `supabase link`, `supabase db push`, `npm run sync-shared`, then `supabase functions deploy room --no-verify-jwt`.
 
 **How it stays secure:**
 - The Edge Function is the only thing that reads or writes rooms. Both tables have row-level security turned on with no public policies.
@@ -82,7 +81,7 @@ The static site alone gives you single-player. For kids in different houses or o
 ## Tests
 
 ```bash
-npm test        # question engine (≈74,000 checks), server room logic (43 checks), shared-copy check
+npm test        # question engine (≈74,000 checks), Little Explorer (20,000), server room logic (44), dashboard bundle replay, shared-copy check
 npm run e2e     # headless Chromium: 35 single-player + 11 Little Explorer + 10 two-device multiplayer checks
 ```
 
