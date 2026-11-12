@@ -130,7 +130,9 @@ export function pickConcept(L, world, rng, opts = {}) {
     for (const c of Object.keys(CONCEPTS)) {
       if (CONCEPTS[c].domain !== skill) continue;
       const cl = conceptLevels(c)[0];
-      if (cl === lv) pool.push({ c, level: lv, tier: tierOf(L.skill[skill]), w: need(c) * boost });
+      // first-fractions learners: very few definition questions
+      const defW = opts.gentle && c === 'frac_parts' ? 0.25 : 1;
+      if (cl === lv) pool.push({ c, level: lv, tier: tierOf(L.skill[skill]), w: need(c) * boost * defW });
       else if (cl === lv - 1 || (cl < lv && rng.chance(0.3))) pool.push({ c, level: cl, tier: 0.8, w: 0.35 * boost });
     }
   };
@@ -164,12 +166,12 @@ export function nextQuestion(L, world, rng, opts = {}) {
   } else pick = pickConcept(L, world, rng, opts);
   let q;
   for (let i = 0; i < 30; i++) {
-    q = generate(pick.c, { rng, tier: pick.tier, level: pick.level });
+    q = generate(pick.c, { rng, tier: pick.tier, level: pick.level, gentle: opts.gentle });
     q.tier = pick.tier;
     if (!L.seen[q.id] && !(opts.avoid && opts.avoid.has(q.id))) break;
   }
   if (opts.inputFilter && !opts.inputFilter(q)) {
-    for (let i = 0; i < 20 && !opts.inputFilter(q); i++) { q = generate(pick.c, { rng, tier: pick.tier, level: pick.level }); q.tier = pick.tier; }
+    for (let i = 0; i < 20 && !opts.inputFilter(q); i++) { q = generate(pick.c, { rng, tier: pick.tier, level: pick.level, gentle: opts.gentle }); q.tier = pick.tier; }
   }
   return q;
 }
@@ -187,3 +189,6 @@ export function suggestions(L) {
   }
   return out;
 }
+
+// "First fractions" mode: on for kids who haven't learned fractions yet.
+export const isGentle = (p) => (p.settings.fracGentle ?? (p.style === 'younger'));

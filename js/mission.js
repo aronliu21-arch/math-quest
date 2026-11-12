@@ -6,7 +6,7 @@ import { t, L, getLang } from './i18n.js';
 import { el, rich, richL, fmtRich, $, $$, bindActions, toast, modal, burst, confetti, centerOf, sleep, progressBar, reducedMotion } from './ui.js';
 import { heroSVG, petSVG, petName, monsterSVG, makeMonster, BOSSES, sceneSVG, itemSVG, pieSVG, barSVG, rectSVG, lineSVG, chestSVG, PETS } from './art.js';
 import { sfx, speak, startMusic, stopMusic, stopSpeaking } from './audio.js';
-import { nextQuestion, recordResult, conceptMastery } from './adaptive.js';
+import { nextQuestion, recordResult, conceptMastery, isGentle } from './adaptive.js';
 import { checkAnswer, generate, CONCEPTS, longDivision, asMultipleChoice } from '../shared/mathgen.js';
 import { fmt } from '../shared/fraction.js';
 import { makeRng, randomSeed } from '../shared/rng.js';
@@ -34,8 +34,8 @@ function puzzleQuestion(p, world, rng, seen) {
   const tier = (p.learning.skill[skill].r % 100) / 100;
   let q;
   const hands = (x) => ['share', 'shade', 'line', 'order'].includes(x.input);
-  for (let i = 0; i < 40; i++) { q = generate(c, { rng, tier: world === 'legend' ? 1 : tier }); if (hands(q) && !p.learning.seen[q.id] && !seen.has(q.id)) break; }
-  for (let i = 0; i < 40 && !hands(q); i++) q = generate(c, { rng, tier: world === 'legend' ? 1 : tier });
+  for (let i = 0; i < 40; i++) { q = generate(c, { rng, tier: world === 'legend' ? 1 : tier, gentle: isGentle(p) }); if (hands(q) && !p.learning.seen[q.id] && !seen.has(q.id)) break; }
+  for (let i = 0; i < 40 && !hands(q); i++) q = generate(c, { rng, tier: world === 'legend' ? 1 : tier, gentle: isGentle(p) });
   q.tier = tier;
   return q;
 }
@@ -263,7 +263,7 @@ register('mission', async (cfg) => {
     if (mode === 'puzzle') q = puzzleQuestion(p, world, rng, st.seen);
     else {
       const filter = mode === 'treasure' ? (x) => x.input === 'mc' : mode === 'timed' ? (x) => x.input === 'mc' || x.input === 'pad' : null;
-      q = nextQuestion(p.learning, world, rng, { followUp: st.followUp, avoid: st.seen, inputFilter: filter });
+      q = nextQuestion(p.learning, world, rng, { followUp: st.followUp, avoid: st.seen, inputFilter: filter, gentle: isGentle(p) });
       if (mode === 'treasure' && q.input !== 'mc') q = { ...asMultipleChoice(q, rng), tier: q.tier };
     }
     st.seen.add(q.id);

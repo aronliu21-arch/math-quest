@@ -202,12 +202,11 @@ function shareInput(q, host, submit) {
 // ---------- tap to shade ----------
 function shadeInput(q, host, submit) {
   const shaded = Array(q.d).fill(false);
-  const node = el(`<div class="shade"><div class="shape-host"></div><div class="shade-count"></div><div class="row gap"><button class="btn ghost reset">${t('resetPuzzle')}</button><button class="btn big check">${t('check')} ✓</button></div></div>`);
+  const node = el(`<div class="shade"><div class="shape-host"></div><div class="row gap"><button class="btn ghost reset">${t('resetPuzzle')}</button><button class="btn big check">${t('check')} ✓</button></div></div>`);
   host.appendChild(node);
   const draw = () => {
     const opts = { shaded, interactive: true };
     $('.shape-host', node).innerHTML = q.shape === 'pie' ? pieSVG(0, q.d, { ...opts, size: 190 }) : q.shape === 'bar' ? barSVG(0, q.d, { ...opts, width: Math.min(340, window.innerWidth - 60), height: 70 }) : rectSVG(0, q.d, { ...opts, size: 220 });
-    $('.shade-count', node).innerHTML = rich(`[${shaded.filter(Boolean).length}/${q.d}]`);
   };
   draw();
   node.addEventListener('click', (e) => {

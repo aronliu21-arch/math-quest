@@ -53,6 +53,30 @@ const HATS = {
   astro: `<circle cx="60" cy="52" r="46" fill="#d0ebff" fill-opacity=".35" stroke="${OL}" stroke-width="3"/>`,
   dino: `<path d="M30 30 L36 14 L44 26 L52 8 L60 24 L68 8 L76 26 L84 14 L90 30 Z" fill="#69db7c" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/>`,
 };
+// free starter hats (also picked in the hero creator)
+Object.assign(HATS, {
+  cap: `<path d="M24 40 C24 14 96 14 96 40 Z" fill="#e03131" stroke="${OL}" stroke-width="3"/><path d="M78 38 C92 36 108 38 112 44 C100 46 88 44 78 42 Z" fill="#c92a2a" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/><circle cx="60" cy="18" r="3" fill="#fff"/>`,
+  beanie: `<path d="M24 42 C22 10 98 10 96 42 Z" fill="#4c6ef5" stroke="${OL}" stroke-width="3"/><rect x="22" y="36" width="76" height="10" rx="5" fill="#364fc7" stroke="${OL}" stroke-width="3"/><circle cx="60" cy="8" r="7" fill="#ffd43b" stroke="${OL}" stroke-width="3"/>`,
+  headband: `<path d="M26 42 C30 22 90 22 94 42" fill="none" stroke="${OL}" stroke-width="9" stroke-linecap="round"/><path d="M26 42 C30 22 90 22 94 42" fill="none" stroke="#f06595" stroke-width="5" stroke-linecap="round"/><circle cx="60" cy="25" r="5" fill="#ffd43b" stroke="${OL}" stroke-width="2"/>`,
+  bow: `<path d="M60 22 L40 10 L40 34 Z M60 22 L80 10 L80 34 Z" fill="#f783ac" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/><circle cx="60" cy="22" r="6" fill="#e64980" stroke="${OL}" stroke-width="3"/>`,
+  horns: `<path d="M34 30 C26 14 30 4 36 0 C36 10 40 18 46 24 Z M86 30 C94 14 90 4 84 0 C84 10 80 18 74 24 Z" fill="#ffe066" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/>`,
+});
+
+export const GLASSES = {
+  round: `<g fill="none" stroke="${OL}" stroke-width="3.5"><circle cx="46" cy="62" r="11"/><circle cx="74" cy="62" r="11"/><path d="M57 61 C59 58 61 58 63 61 M35 60 L27 57 M85 60 L93 57"/></g>`,
+  star: `<g stroke="${OL}" stroke-width="2.5" stroke-linejoin="round" fill="#ffd43b" fill-opacity=".55"><path d="M46 49 l4 8 9 1-6.5 6 2 9-8.5-4.5-8.5 4.5 2-9-6.5-6 9-1z"/><path d="M74 49 l4 8 9 1-6.5 6 2 9-8.5-4.5-8.5 4.5 2-9-6.5-6 9-1z"/></g><path d="M56 62 L64 62" stroke="${OL}" stroke-width="3"/>`,
+  sun: `<g stroke="${OL}" stroke-width="3"><rect x="33" y="54" width="24" height="15" rx="6" fill="#212529"/><rect x="63" y="54" width="24" height="15" rx="6" fill="#212529"/><path d="M57 59 L63 59 M33 58 L26 56 M87 58 L94 56" fill="none"/></g><path d="M37 58 l6 0 M67 58 l6 0" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>`,
+  goggles: `<path d="M24 60 L96 60" stroke="#495057" stroke-width="7"/><g stroke="${OL}" stroke-width="3"><circle cx="46" cy="62" r="12" fill="#74c0fc" fill-opacity=".55"/><circle cx="74" cy="62" r="12" fill="#74c0fc" fill-opacity=".55"/></g><path d="M40 56 l5 -3 M68 56 l5 -3" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>`,
+  heart: `<g stroke="${OL}" stroke-width="2.5" fill="#ff8787" fill-opacity=".6"><path d="M46 72 C34 64 34 52 41 52 C44 52 46 55 46 57 C46 55 48 52 51 52 C58 52 58 64 46 72 Z"/><path d="M74 72 C62 64 62 52 69 52 C72 52 74 55 74 57 C74 55 76 52 79 52 C86 52 86 64 74 72 Z"/></g><path d="M56 61 L64 61" stroke="${OL}" stroke-width="3"/>`,
+};
+export const ACCESSORIES = {
+  scarf: `<path d="M44 90 C52 96 68 96 76 90 L78 98 C68 104 52 104 42 98 Z" fill="#fa5252" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/><path d="M66 98 L72 120 L62 118 L60 100 Z" fill="#fa5252" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/>`,
+  bowtie: `<path d="M60 96 L48 90 L48 102 Z M60 96 L72 90 L72 102 Z" fill="#7048e8" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/><circle cx="60" cy="96" r="3.5" fill="#5f3dc4" stroke="${OL}" stroke-width="2"/>`,
+  medal: `<path d="M52 90 L60 106 L68 90" fill="none" stroke="#1c7ed6" stroke-width="5"/><circle cx="60" cy="110" r="8" fill="#fcc419" stroke="${OL}" stroke-width="3"/><path d="M60 105 l1.6 3.2 3.5.4-2.6 2.4.7 3.5-3.2-1.8-3.2 1.8.7-3.5-2.6-2.4 3.5-.4z" fill="#fff"/>`,
+  necklace: `<path d="M48 90 C52 100 68 100 72 90" fill="none" stroke="#fab005" stroke-width="3"/>${[50, 55, 60, 65, 70].map((x, i) => `<circle cx="${x}" cy="${92 + (i === 2 ? 6 : i % 4 === 0 ? 1 : 4)}" r="3" fill="${['#ff8787', '#74c0fc', '#ffd43b', '#69db7c', '#b197fc'][i]}" stroke="${OL}" stroke-width="1.5"/>`).join('')}`,
+};
+export const STARTER_HATS = ['cap', 'beanie', 'headband', 'bow', 'horns', 'cat', 'flowers', 'dino'];
+
 const HELD = {
   wand: `<g transform="rotate(-25 104 112)"><rect x="101" y="96" width="6" height="40" rx="3" fill="#845ef7" stroke="${OL}" stroke-width="2.5"/><path d="M104 82 l4 8 9 1-6.5 6 2 9-8.5-4.5-8.5 4.5 2-9-6.5-6 9-1z" fill="#ffe066" stroke="${OL}" stroke-width="2"/></g>`,
   sword: `<g transform="rotate(-20 104 120)"><rect x="100" y="70" width="9" height="48" rx="3" fill="#dee2e6" stroke="${OL}" stroke-width="2.5"/><rect x="94" y="116" width="21" height="7" rx="3" fill="#fab005" stroke="${OL}" stroke-width="2.5"/><rect x="101" y="122" width="7" height="14" rx="3" fill="#862e9c" stroke="${OL}" stroke-width="2.5"/></g>`,
@@ -62,12 +86,14 @@ const HELD = {
 };
 const CAPES = { red: '#e03131', gold: '#fab005', star: '#4c6ef5', green: '#2b8a3e' };
 
-export function heroSVG(a = {}, { size = 120, glow = false, pose = 'idle' } = {}) {
+export function heroSVG(a = {}, { size = 120, glow = false, pose = 'idle', crop = null } = {}) {
+  // crop: 'head' or 'neck' zooms in (used for the style pickers)
+  const vb = crop === 'head' ? '14 -18 92 92' : crop === 'neck' ? '24 50 72 72' : '-10 -20 140 182';
   const hair = a.hair || 'short'; const hc = a.hairColor || HAIR_COLORS[0]; const skin = a.skin || SKINS[1];
   const outfit = a.outfit || OUTFITS[0]; const num = a.number ?? '';
   const id = nid('h');
   const cape = a.cape && CAPES[a.cape] ? `<path d="M36 100 C26 130 30 150 40 156 L80 156 C90 150 94 130 84 100 Z" fill="${CAPES[a.cape]}" stroke="${OL}" stroke-width="3"/>` : '';
-  return `<svg class="hero ${pose}" viewBox="-10 -20 140 182" width="${size}" height="${size * 1.3}" aria-hidden="true">
+  return `<svg class="hero ${pose}" viewBox="${vb}" width="${size}" height="${crop ? size : size * 1.3}" aria-hidden="true">
   <defs><radialGradient id="${id}g"><stop offset="0" stop-color="#ffe066" stop-opacity=".9"/><stop offset="1" stop-color="#ffe066" stop-opacity="0"/></radialGradient></defs>
   ${glow ? `<ellipse cx="60" cy="80" rx="70" ry="88" fill="url(#${id}g)"/>` : ''}
   <ellipse cx="60" cy="158" rx="30" ry="6" fill="#000" opacity=".18"/>
@@ -82,6 +108,7 @@ export function heroSVG(a = {}, { size = 120, glow = false, pose = 'idle' } = {}
   <g class="arm-r"><path d="M82 98 C94 104 98 114 100 118" fill="none" stroke="${OL}" stroke-width="13" stroke-linecap="round"/><path d="M82 98 C94 104 98 114 100 118" fill="none" stroke="${outfit}" stroke-width="8" stroke-linecap="round"/><circle cx="101" cy="120" r="6" fill="${skin}" stroke="${OL}" stroke-width="2.5"/></g>
   ${a.held && HELD[a.held] ? HELD[a.held] : ''}
   <rect x="53" y="82" width="14" height="12" fill="${skin}" stroke="${OL}" stroke-width="2.5"/>
+  ${a.acc && ACCESSORIES[a.acc] ? ACCESSORIES[a.acc] : ''}
   <circle cx="60" cy="56" r="36" fill="${skin}" stroke="${OL}" stroke-width="3"/>
   <ellipse cx="26" cy="60" rx="5" ry="8" fill="${skin}" stroke="${OL}" stroke-width="2.5"/><ellipse cx="94" cy="60" rx="5" ry="8" fill="${skin}" stroke="${OL}" stroke-width="2.5"/>
   ${hairFront(hair, hc)}
@@ -98,6 +125,7 @@ export function heroSVG(a = {}, { size = 120, glow = false, pose = 'idle' } = {}
     ? `<path d="M48 76 C54 84 66 84 72 76 Z" fill="#fff" stroke="${OL}" stroke-width="2.5" stroke-linejoin="round"/><path d="M52 78 L52 81 M57 79 L57 82.5 M63 79 L63 82.5 M68 78 L68 81" stroke="${OL}" stroke-width="1.4"/>`
     : `<path d="M48 75 C53 84 67 84 72 75 Z" fill="#c92a2a" stroke="${OL}" stroke-width="2.5" stroke-linejoin="round"/><path d="M53 80 C57 83 63 83 67 80" fill="#ff8787"/>`}
   <ellipse cx="36" cy="72" rx="5" ry="3" fill="#ff8787" opacity=".55"/><ellipse cx="84" cy="72" rx="5" ry="3" fill="#ff8787" opacity=".55"/>
+  ${a.glasses && GLASSES[a.glasses] ? GLASSES[a.glasses] : ''}
   ${a.hat && HATS[a.hat] ? HATS[a.hat] : ''}
 </svg>`;
 }

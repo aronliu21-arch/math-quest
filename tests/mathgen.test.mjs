@@ -12,7 +12,10 @@ for (const concept of Object.keys(CONCEPTS)) {
   for (const level of conceptLevels(concept)) {
     for (let i = 0; i < 1500; i++) {
       const tier = (i % 11) / 10;
-      const q = generate(concept, { rng: makeRng(`${concept}-${level}-${i}`), tier, level });
+      const gentle = i % 2 === 1; // also check the "first fractions" variants
+      const q = generate(concept, { rng: makeRng(`${concept}-${level}-${i}`), tier, level, gentle });
+      if (gentle && /^frac_(identify|shade|parts)$/.test(concept) && (q.visual ? q.visual.d : q.d) > 4) { failures++; console.log('GENTLE TOO HARD', q.id); }
+      if (gentle && concept === 'frac_parts' && !q.visual) { failures++; console.log('GENTLE parts without picture', q.id); }
       total++;
       const errs = validateQuestion(q);
       ids.add(q.id);

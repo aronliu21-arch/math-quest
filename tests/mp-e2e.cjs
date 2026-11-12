@@ -18,6 +18,7 @@ async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
   await pg.goto(BASE); await pg.waitForTimeout(300);
   await pg.click('.start-btn'); await pg.click('.profile-card.new');
   await pg.fill('.name-input', name); await pg.click('[data-act="next"]'); await pg.click('[data-act="next"]');
+  await pg.click('[data-act="set"][data-arg="glasses|sun"]'); await pg.click('[data-act="next"]'); // style step
   await pg.click('.pet-card >> nth=0'); await pg.click('[data-act="next"]'); await pg.click('[data-act="next"]'); await pg.waitForTimeout(400);
   return { ctx, pg };
 }
@@ -45,8 +46,10 @@ async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
   await B.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '21-lobby-guest-phone.png') });
   await A.pg.click('[data-act="start"]'); await A.pg.waitForTimeout(1200);
   const hp0 = await B.pg.evaluate(() => window.__test.mpState().game.hp);
-  check(hp0 === 12 && (await B.pg.evaluate(() => window.__test.mpState().status)) === 'playing', 'guest sees the started boss battle with shared HP');
+  check(hp0 === 15 && (await B.pg.evaluate(() => window.__test.mpState().status)) === 'playing', 'guest sees the started boss battle with shared HP');
   await A.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '22-boss-A.png') });
+  await A.pg.click('[data-act="move"][data-arg="thunder"]'); await B.pg.click('[data-act="move"][data-arg="fire"]'); await A.pg.waitForTimeout(400);
+  let shot2 = false; let shot3 = false;
   // A answers wrong twice (reveal) then both answer correctly using the visible question only via server truth: we don't have answers client-side!
   // so drive answers through the input UI: for mc pick each choice until correct
   async function answerOnce(pg) {
@@ -74,10 +77,16 @@ async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
     const st = await A.pg.evaluate(() => window.__test.mpState().status);
     if (st !== 'playing') break;
     await answerOnce(A.pg); await answerOnce(B.pg);
+    const hpNow = await A.pg.evaluate(() => { const s = window.__test.mpState(); return s.game && s.game.hp; });
+    if (!shot2 && hpNow <= 10 && hpNow > 5) { shot2 = true; await A.pg.waitForTimeout(500); await A.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '22b-boss-angry.png') }); }
+    if (!shot3 && hpNow <= 5 && hpNow > 0) { shot3 = true; await B.pg.waitForTimeout(500); await B.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '22c-boss-final-phone.png') }); }
   }
+  const moves = await A.pg.evaluate(() => [...new Set(window.__test.mpState().log.filter((e) => e.type === 'hit').map((e) => e.move))]);
+  check(moves.includes('thunder') && moves.includes('fire'), 'each kid\'s chosen attack move is used (' + moves.join(', ') + ')');
+  check(shot2 && shot3, 'boss goes through angry and final-form phases');
   const hpA = await A.pg.evaluate(() => window.__test.mpState().game.hp), hpB = await B.pg.evaluate(() => window.__test.mpState().game.hp);
   check(hpA === 0 && hpB === 0 && (await A.pg.evaluate(() => window.__test.mpState().status)) === 'ended', 'both devices agree the boss was defeated');
-  await A.pg.waitForTimeout(800);
+  await A.pg.waitForTimeout(3500); // defeat finale plays before results
   await A.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '23-end-A.png') });
   await B.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '24-end-B.png') });
   check((await A.pg.evaluate(() => window.__test.S.profile.coins)) > 30 && (await B.pg.evaluate(() => window.__test.S.profile.stats.teamWins)) === 1, 'server rewards applied once on each device');

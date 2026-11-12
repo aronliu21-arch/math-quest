@@ -9,12 +9,14 @@ import { sfx, speak, stopMusic, startMusic } from './audio.js';
 import { createNet, detectBackend } from './net.js';
 import { renderInput } from './inputs.js';
 import { visualHTML } from './mission.js';
+import { createArena, movePickerHTML } from './arena.js';
+import { isGentle } from './adaptive.js';
 const CODE_LEN = 4; // must match shared/room-logic.js
 import { qrSVG } from './qr.js';
 import { fmt } from '../shared/fraction.js';
 
 function myProfilePayload(p) {
-  return { name: p.name, avatar: p.avatar, pet: p.activePet, petStage: p.pets[p.activePet]?.stage || 0, levels: { div: skillLevel(p, 'div'), frac: skillLevel(p, 'frac') } };
+  return { name: p.name, avatar: p.avatar, pet: p.activePet, petStage: p.pets[p.activePet]?.stage || 0, levels: { div: skillLevel(p, 'div'), frac: skillLevel(p, 'frac') }, gentle: isGentle(p), move: p.settings.move || 'stars' };
 }
 const errText = (e) => ({ notFound: t('roomNotFound'), full: t('roomFull'), started: t('roomStarted'), needPlayers: t('waitingPlayers') }[e] || t('reconnecting'));
 
@@ -81,6 +83,8 @@ register('mproom', ({ net, code, state: initial }) => {
   stopMusic();
   let state = initial; let shownQid = null; let holdReveal = false; let busy = false; let input = null; let curQ = null; let alive = true; let lastStatus = 'up';
   let tries = 0;
+  let arena = null; let endingHold = false;
+  const killArena = () => { if (arena) { arena.destroy(); arena = null; } };
   const node = el(`<div class="mp-screen mproom"><div class="scene-bg">${sceneSVG('kingdom')}</div>
     <header class="topbar"><button class="btn-icon" data-act="leave" aria-label="${t('leaveRoom')}">←</button><h1>${t('roomCode')}: ${code}</h1></header>
     <div class="team-bar"></div>
@@ -98,6 +102,13 @@ register('mproom', ({ net, code, state: initial }) => {
     if (state && s.updated < state.updated) return; // ignore stale snapshots
     const prev = state; state = s;
     if (prev && prev.status === 'playing' && s.status === 'playing') celebrate(prev, s);
+    if (prev && prev.status === 'playing' && s.status === 'ended' && s.mode === 'boss' && arena && !endingHold) {
+      // let everyone see the final blow and the boss's big defeat before the results
+      endingHold = true; arena.update({ ...s, status: 'playing' });
+      setTimeout(() => arena && arena.playDefeat().then(() => { endingHold = false; killArena(); render(); }), 900);
+      return;
+    }
+    if (endingHold) return;
     render();
   };
   const unsub = net.subscribe(code, onState, status);
@@ -119,9 +130,6 @@ register('mproom', ({ net, code, state: initial }) => {
 
   function celebrate(prev, s) {
     // play a hit animation when the shared boss takes damage
-    if (s.mode === 'boss' && s.game && prev.game && s.game.hp < prev.game.hp) {
-      const mon = $('.mon', modeArea); if (mon) { mon.classList.add('hit'); sfx('hit'); setTimeout(() => mon.classList.remove('hit'), 400); }
-    }
     if (s.mode === 'treasure' && s.game && prev.game && s.game.found > prev.game.found) { sfx('chest'); }
   }
 
@@ -135,6 +143,7 @@ register('mproom', ({ net, code, state: initial }) => {
 
   function render() {
     teamBar.innerHTML = state.order.map(playerChip).join('');
+    if (state.status !== 'playing' || state.mode !== 'boss') killArena();
     if (state.status === 'lobby') return renderLobby();
     if (state.status === 'ended') return renderEnd();
     renderMode(); renderQuestion();
@@ -155,11 +164,12 @@ register('mproom', ({ net, code, state: initial }) => {
   function renderMode() {
     const g = state.game;
     if (state.mode === 'boss') {
-      const mon = makeMonster(code, g.world, true);
-      const hpf = g.hp / g.maxHp;
-      modeArea.innerHTML = `<div class="mon-name">${esc(L({ en: g.boss[0], zh: g.boss[1] }))}</div><div class="small">${t('teamHp')}</div>
-        <div class="hpbar" style="width:min(340px,80%)"><div style="width:${hpf * 100}%;background:${hpf > 0.5 ? '#40c057' : hpf > 0.25 ? '#fab005' : '#fa5252'}"></div></div>
-        <div class="mon">${monsterSVG({ ...mon, name: g.boss }, { size: 170 })}</div>`;
+      if (!arena) {
+        modeArea.innerHTML = '<div class="arena-host"></div><div class="moves-host"></div>';
+        arena = createArena($('.arena-host', modeArea), { code, me });
+      }
+      arena.update(state);
+      $('.moves-host', modeArea).innerHTML = movePickerHTML(p.settings.move || 'stars');
     } else if (state.mode === 'treasure') {
       const mine = state.players[me].pendingPick;
       modeArea.innerHTML = `<div><b>💰 ${g.found} / ${g.need}</b></div><div class="dig-grid">${g.tiles.map((x, i) => `<button class="dig ${x ? (x.treasure ? 'found' : 'dug') : ''}" data-act="pick" data-arg="${i}" ${x || !mine ? 'disabled' : ''}>${x ? (x.treasure ? '💎' : '·') : '🟫'}</button>`).join('')}</div>
@@ -197,7 +207,7 @@ register('mproom', ({ net, code, state: initial }) => {
   async function submit(value, btn) {
     if (busy || !curQ) return; busy = true;
     const qid = curQ.qid;
-    const out = await call({ action: 'answer', qid, value });
+    const out = await call({ action: 'answer', qid, value, move: p.settings.move || 'stars' });
     busy = false;
     const fb = $('.feedback', qArea); if (!fb) return;
     if (!out.ok) { if (out.error === 'stale') { shownQid = null; render(); } return; }
@@ -241,6 +251,7 @@ register('mproom', ({ net, code, state: initial }) => {
   bindActions(node, {
     leave: async () => { await call({ action: 'leave' }); p.mpSession = null; await save(p); go('hub'); },
     mode: (m) => call({ action: 'setMode', mode: m }),
+    move: (k) => { p.settings.move = k; save(p); sfx('tap'); const mh = $('.moves-host', modeArea); if (mh) mh.innerHTML = movePickerHTML(k); call({ action: 'setMove', move: k }); },
     start: async () => { const o = await call({ action: 'start' }); if (!o.ok) toast(errText(o.error), 'info'); },
     again: async (m) => { const o = await call({ action: 'start', mode: m }); if (!o.ok) toast(errText(o.error), 'info'); },
     pick: async (i, b) => { const o = await call({ action: 'pick', index: +i }); if (o.ok && o.found) { const [x, y] = centerOf(b); burst(x, y, 24); sfx('chest'); } else if (o.ok) sfx('drop'); },
@@ -251,6 +262,6 @@ register('mproom', ({ net, code, state: initial }) => {
   if (window.__test) window.__test.mpState = () => state;
   return {
     node,
-    cleanup: () => { alive = false; clearInterval(hb); unsub(); window.removeEventListener('online', onOnline); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('pagehide', onHide); $('.net-status')?.remove(); },
+    cleanup: () => { killArena(); alive = false; clearInterval(hb); unsub(); window.removeEventListener('online', onOnline); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('pagehide', onHide); $('.net-status')?.remove(); },
   };
 });

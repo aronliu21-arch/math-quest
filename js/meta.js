@@ -3,7 +3,7 @@ import { register, go, refresh } from './router.js';
 import { S, save, addPet, randomUnownedPet, checkAchievements, rollChest, ensureDaily, grantRewards, skillLevel } from './state.js';
 import { t, L, getLang } from './i18n.js';
 import { el, $, $$, bindActions, toast, modal, burst, confetti, centerOf, progressBar, esc, rich } from './ui.js';
-import { heroSVG, petSVG, petName, PETS, sceneSVG, itemSVG, decorSVG, chestSVG, pieSVG } from './art.js';
+import { heroSVG, petSVG, petName, PETS, sceneSVG, itemSVG, decorSVG, chestSVG, pieSVG, GLASSES, ACCESSORIES } from './art.js';
 import { sfx } from './audio.js';
 import { COSTUMES, EQUIPMENT, DECOR_ITEMS, ACHIEVEMENTS, PET_XP_FOR_LEVEL, EVOLVE_AT } from './content.js';
 import { makeRng, randomSeed } from '../shared/rng.js';
@@ -47,11 +47,12 @@ register('collection', ({ tab = 'costumes' } = {}) => {
   const tabs = ['costumes', 'equipment', 'achievements'];
   let body = '';
   if (tab === 'costumes') {
-    const owned = Object.keys(p.owned.costumes);
-    body = owned.length ? `<div class="item-grid">${owned.map((k) => {
+    const owned = Object.keys(p.owned.costumes).filter((k) => COSTUMES[k]);
+    const styleRow = (key, opts, title) => `<div class="style-row card"><b>${title}</b><div class="hair-row">${opts.map((o) => `<button class="hair-btn acc-btn ${(p.avatar[key] || '') === o ? 'on' : ''}" data-act="style" data-arg="${key}|${o}" aria-label="${o || 'none'}">${o ? heroSVG({ ...p.avatar, [key]: o }, { size: 56, crop: key === 'acc' ? 'neck' : 'head' }) : '<span class="none-x">✕</span>'}</button>`).join('')}</div></div>`;
+    body = styleRow('glasses', ['', ...Object.keys(GLASSES)], L({ en: 'Glasses', zh: '眼鏡' })) + styleRow('acc', ['', ...Object.keys(ACCESSORIES)], L({ en: 'Extra', zh: '配件' })) + (owned.length ? `<div class="item-grid">${owned.map((k) => {
       const c = COSTUMES[k]; const on = (c.kind === 'hat' ? p.avatar.hat : p.avatar.cape) === k;
       return `<button class="item-card card ${on ? 'on' : ''}" data-act="wear" data-arg="${k}">${heroSVG({ ...p.avatar, [c.kind]: k }, { size: 70 })}<b>${L(c.name)}</b><span class="small">${on ? t('equipped') : t('equip')}</span></button>`;
-    }).join('')}</div>` : `<p class="empty">${L({ en: 'Win treasure chests or visit the shop to get costumes!', zh: '打開寶箱或去商店就能得到服裝！' })}</p>`;
+    }).join('')}</div>` : `<p class="empty">${L({ en: 'Win treasure chests or visit the shop to get costumes!', zh: '打開寶箱或去商店就能得到服裝！' })}</p>`);
   } else if (tab === 'equipment') {
     const owned = Object.keys(p.owned.equipment);
     body = owned.length ? `<div class="item-grid">${owned.map((k) => {
@@ -69,6 +70,7 @@ register('collection', ({ tab = 'costumes' } = {}) => {
     back: () => go('hub'),
     tab: (x) => go('collection', { tab: x }, { replace: true }),
     wear: (k) => { const kind = COSTUMES[k].kind; p.avatar[kind] = p.avatar[kind] === k ? null : k; save(p); refresh(); },
+    style: (arg) => { const [k, v] = arg.split('|'); p.avatar[k] = v || null; save(p); refresh(); },
     hold: (k) => { p.avatar.held = p.avatar.held === k ? null : k; save(p); refresh(); },
   });
   return node;

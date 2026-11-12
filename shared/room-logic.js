@@ -11,6 +11,8 @@ export const MAX_PLAYERS = 4;
 export const MIN_PLAYERS = 2;
 export const OFFLINE_AFTER_MS = 15000;
 export const ROOM_TTL_MS = 6 * 3600 * 1000;
+export const BOSS_HITS = 15; // correct answers the whole team needs to defeat a boss
+export const MOVES = ['thunder', 'fire', 'tornado', 'stars', 'ice', 'dino']; // attack moves kids pick
 
 export function newCode(rnd = Math.random) {
   let s = '';
@@ -45,11 +47,15 @@ function cleanProfile(p = {}) {
       hat: typeof a.hat === 'string' ? a.hat.slice(0, 12) : null,
       cape: typeof a.cape === 'string' ? a.cape.slice(0, 12) : null,
       held: typeof a.held === 'string' ? a.held.slice(0, 12) : null,
+      glasses: typeof a.glasses === 'string' ? a.glasses.slice(0, 12) : null,
+      acc: typeof a.acc === 'string' ? a.acc.slice(0, 12) : null,
       number: Number.isInteger(a.number) && a.number >= 0 && a.number <= 99 ? a.number : '',
     },
     pet: typeof p.pet === 'string' ? p.pet.slice(0, 16) : 'divi',
     petStage: [0, 1, 2].includes(p.petStage) ? p.petStage : 0,
     levels: { div: lv(p.levels && p.levels.div), frac: lv(p.levels && p.levels.frac) },
+    gentle: !!p.gentle, // first-fractions mode
+    move: MOVES.includes(p.move) ? p.move : 'stars',
   };
 }
 
@@ -68,12 +74,12 @@ function cleanValue(v) {
 }
 
 // ---------- questions ----------
-function pickConcept(rng, levels, preferMix) {
+function pickConcept(rng, levels, preferMix, gentle) {
   const pool = [];
   for (const c of Object.keys(CONCEPTS)) {
     const dom = CONCEPTS[c].domain; const lv = conceptLevels(c);
     if (dom === 'div' && lv.includes(levels.div)) pool.push({ c, level: levels.div });
-    if (dom === 'frac' && lv.includes(levels.frac)) pool.push({ c, level: levels.frac });
+    if (dom === 'frac' && lv.includes(levels.frac) && !(gentle && c === 'frac_parts' && rng.chance(0.75))) pool.push({ c, level: levels.frac });
     const m = Math.min(levels.div, levels.frac);
     if (preferMix && dom === 'mix' && lv.includes(m)) pool.push({ c, level: m }, { c, level: m });
   }
@@ -84,11 +90,11 @@ function issueQuestion(state, secrets, pid, { easier = false } = {}) {
   const pl = state.players[pid];
   secrets.qn = (secrets.qn || 0) + 1;
   const rng = makeRng(`${secrets.seed}-${pid}-${secrets.qn}`);
-  const pick = pickConcept(rng, pl.levels, true);
+  const pick = pickConcept(rng, pl.levels, !pl.gentle, pl.gentle);
   const tier = easier ? 0.1 : 0.3 + rng.next() * 0.6;
-  let q = generate(pick.c, { rng, tier, level: pick.level });
+  let q = generate(pick.c, { rng, tier, level: pick.level, gentle: pl.gentle });
   // keep team play brisk: prefer tap/keypad questions over long drag puzzles
-  for (let i = 0; i < 6 && ['share', 'order'].includes(q.input); i++) q = generate(pick.c, { rng, tier, level: pick.level });
+  for (let i = 0; i < 6 && ['share', 'order'].includes(q.input); i++) q = generate(pick.c, { rng, tier, level: pick.level, gentle: pl.gentle });
   const qid = `${secrets.qn}`;
   secrets.answers[pid] = { qid, q, tries: 0 };
   pl.q = { ...publicQuestion(q), qid };
@@ -137,7 +143,7 @@ function startGame(state, secrets) {
   if (state.mode === 'boss') {
     const names = [['Count Crumble', '碎碎伯爵'], ['The Pizza Hydra', '披薩九頭蛇'], ['Muddle the Mixed-up Golem', '糊塗石像巨人'], ['Chaos Infinity Dragon', '混沌無限龍']];
     const i = rng.int(0, 3);
-    state.game = { hp: 6 * n, maxHp: 6 * n, boss: names[i], world: ['village', 'forest', 'kingdom', 'legend'][i] };
+    state.game = { hp: BOSS_HITS, maxHp: BOSS_HITS, boss: names[i], world: ['village', 'forest', 'kingdom', 'legend'][i], combo: 0, bestCombo: 0 };
   } else if (state.mode === 'treasure') {
     const tiles = 16; const need = 4;
     secrets.treasure = rng.shuffle([...Array(tiles).keys()]).slice(0, need);
@@ -258,6 +264,9 @@ async function apply(state, secrets, body, now) {
         state.game.turn = nextRelayTurn(state); if (state.game.turn !== pid) issueQuestion(state, secrets, state.game.turn);
       }
       return { out: { ok: true } };
+    case 'setMove': // pick an attack move (any time)
+      if (!MOVES.includes(body.move)) return { readOnly: true, out: { ok: false, error: 'bad' } };
+      me.move = body.move; return { out: { ok: true } };
     case 'setMode':
       if (pid !== state.hostId || state.status !== 'lobby' || !MODES.includes(body.mode)) return { readOnly: true, out: { ok: false, error: 'denied' } };
       state.mode = body.mode; return { out: { ok: true } };
@@ -283,7 +292,14 @@ async function apply(state, secrets, body, now) {
         const firstTry = slot.tries === 0;
         me.correct++;
         me.last = { ok: true, firstTry, t: now };
-        if (state.mode === 'boss') { const dmg = firstTry ? 2 : 1; state.game.hp = Math.max(0, state.game.hp - dmg); me.damage += dmg; log(state, { t: now, type: 'hit', who: pid, dmg }); }
+        if (state.mode === 'boss') {
+          const move = MOVES.includes(body.move) ? body.move : me.move;
+          me.move = move;
+          state.game.hp = Math.max(0, state.game.hp - 1); me.damage += 1;
+          state.game.combo = (state.game.combo || 0) + 1; state.game.bestCombo = Math.max(state.game.bestCombo || 0, state.game.combo);
+          state.game.hits = (state.game.hits || 0) + 1;
+          log(state, { t: now, type: 'hit', who: pid, dmg: 1, move, crit: firstTry, combo: state.game.combo, n: state.game.hits });
+        }
         if (state.mode === 'relay') { state.game.leg++; log(state, { t: now, type: 'leg', who: pid }); }
         if (state.mode === 'treasure' || state.mode === 'build') { me.pendingPick = true; me.q = null; delete secrets.answers[pid]; }
         if (checkWin(state)) { finishGame(state); return { out: { ok: true, correct: true, firstTry } }; }
@@ -292,6 +308,7 @@ async function apply(state, secrets, body, now) {
         return { out: { ok: true, correct: true, firstTry } };
       }
       slot.tries++;
+      if (state.mode === 'boss' && state.game) state.game.combo = 0; // a miss resets the team combo
       if (slot.tries < 2) { me.last = { ok: false, retry: true, t: now }; return { out: { ok: true, correct: false, retry: true, misconception: res.misconception || null } }; }
       // second miss: reveal, then an easier question (relay passes the baton, no penalty)
       const reveal = slot.q.answer; const steps = slot.q.steps;

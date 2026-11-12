@@ -16,7 +16,7 @@ let fails = 0; const check = (c, m) => { console.log(c ? '  ✔' : '  ✘', m); 
   await pg.click('.start-btn'); await pg.click('.profile-card.new'); await pg.fill('.name-input', 'Kai');
   await pg.click('[data-act="next"]'); await pg.click('[data-act="preset"][data-arg="dino3"]');
   await pg.screenshot({ path: path.join(__dirname, '..', 'test-output', 'l-preset.png') });
-  await pg.click('[data-act="next"]'); await pg.click('.pet-card >> nth=0');
+  await pg.click('[data-act="next"]'); await pg.click('[data-act="next"]'); await pg.click('.pet-card >> nth=0');
   check(/go|出發/i.test(await pg.textContent('[data-act="next"]')), 'dino preset skips the level step');
   await pg.click('[data-act="next"]'); await pg.waitForTimeout(800);
   check((await pg.evaluate(() => window.__test.state().screen)) === 'little' && (await pg.evaluate(() => window.__test.S.profile.settings.narration)), 'opens Little Explorer with read-aloud on');

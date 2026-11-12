@@ -521,9 +521,20 @@ G.div_multistep = (rng, t) => {
 // ================== FRACTIONS ==================
 const SHAPES = ['pie', 'bar', 'rect'];
 
-G.frac_identify = (rng, t) => {
-  const d = t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([2, 3, 4, 5, 6, 8]);
-  const n = rng.int(1, d - 1); const shape = rng.pick(SHAPES);
+G.frac_identify = (rng, t, lvl, o = {}) => {
+  // gentle = first fractions: halves, thirds, quarters; mostly one piece; always a picture
+  const d = o.gentle ? (t < 0.4 ? rng.pick([2, 2, 4]) : rng.pick([2, 3, 4])) : t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([2, 3, 4, 5, 6, 8]);
+  const n = o.gentle && (t < 0.6 || rng.chance(0.5)) ? 1 : rng.int(1, d - 1); const shape = o.gentle ? rng.pick(['pie', 'pie', 'bar']) : rng.pick(SHAPES);
+  if (o.gentle) {
+    const what = shape === 'pie' ? T('pizza', '披薩') : T('chocolate bar', '巧克力');
+    return finishMC({
+      id: `g${n}/${d}${shape[0]}`, answer: fr(n, d), accept: 'exact', data: { expr: `${n}/${d}` },
+      prompt: T(`The ${what.en} is cut into ${d} equal pieces. What fraction is colored?`, `${what.zh}切成 ${d} 塊一樣大的。塗色的是幾分之幾？`),
+      visual: { type: shape, n, d },
+      hints: [T(`${d} pieces in all, so the bottom number is ${d}. How many are colored?`, `全部有 ${d} 塊，所以下面是 ${d}。塗色的有幾塊？`)],
+      steps: [T(`${n} colored piece${n > 1 ? 's' : ''} out of ${d} → [${n}/${d}]`, `${d} 塊裡塗了 ${n} 塊 → [${n}/${d}]`)], tip: 'fraction',
+    }, rng, [fr(d - n, d), fr(n, d + 1), fr(d, n), fr(n, d === 2 ? 4 : 2)], 3);
+  }
   return finishMC({
     id: `${n}/${d}${shape[0]}`, answer: fr(n, d), accept: 'exact', data: { expr: `${n}/${d}` },
     prompt: T('What fraction is colored?', '塗色的部分是幾分之幾？'),
@@ -536,9 +547,9 @@ G.frac_identify = (rng, t) => {
   }, rng, [fr(d - n, d), fr(n, d - n || 1), fr(n, d + 1), fr(n + 1, d), fr(d, n)]);
 };
 
-G.frac_shade = (rng, t) => {
-  const d = t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([3, 4, 5, 6, 8]);
-  const n = rng.int(1, d - 1); const shape = rng.pick(SHAPES);
+G.frac_shade = (rng, t, lvl, o = {}) => {
+  const d = o.gentle ? rng.pick([2, 3, 4]) : t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([3, 4, 5, 6, 8]);
+  const n = o.gentle && (t < 0.6 || rng.chance(0.5)) ? 1 : rng.int(1, d - 1); const shape = o.gentle ? rng.pick(['pie', 'bar']) : rng.pick(SHAPES);
   const food = shape === 'pie' ? T('pizza', '披薩') : shape === 'bar' ? T('chocolate bar', '巧克力') : T('garden', '花園');
   return {
     id: `${n}/${d}${shape[0]}`, input: 'shade', shape, d, answer: num(n), accept: 'exact', data: { expr: `${n}` },
@@ -555,9 +566,9 @@ const LABEL = {
   left: T('How many parts are left over', '還剩下幾份'),
 };
 
-G.frac_parts = (rng, t) => {
-  const d = rng.int(2, t < 0.5 ? 6 : 10); const n = rng.int(1, d - 1);
-  const v = rng.pick(['den', 'num', 'cake', 'meaning']);
+G.frac_parts = (rng, t, lvl, o = {}) => {
+  const d = o.gentle ? rng.pick([2, 3, 4]) : rng.int(2, t < 0.5 ? 6 : 10); const n = o.gentle ? 1 + (rng.chance(0.3) ? rng.int(0, d - 2) : 0) : rng.int(1, d - 1);
+  const v = o.gentle ? 'cake' : rng.pick(['den', 'num', 'cake', 'meaning']);
   if (v === 'den' || v === 'num') {
     const isDen = v === 'den';
     return finishMC({
@@ -939,12 +950,12 @@ function conceptLevels(concept) {
   return Array.isArray(L) ? L : [L];
 }
 
-function generate(concept, { seed, rng, tier = 0.5, level } = {}) {
+function generate(concept, { seed, rng, tier = 0.5, level, gentle = false } = {}) {
   const r = rng || makeRng(seed ?? Math.floor(Math.random() * 2 ** 32));
   const gen = G[concept];
   if (!gen) throw new Error('unknown concept ' + concept);
   const lv = level ?? Math.max(...conceptLevels(concept));
-  const q = gen(r, Math.max(0, Math.min(1, tier)), lv);
+  const q = gen(r, Math.max(0, Math.min(1, tier)), lv, { gentle });
   q.concept = q.concept || concept;
   // generators that fall back to another concept keep their own concept name
   if (!q.id.includes(':')) q.id = `${concept}:${q.id}`;
@@ -1080,6 +1091,8 @@ const MAX_PLAYERS = 4;
 const MIN_PLAYERS = 2;
 const OFFLINE_AFTER_MS = 15000;
 const ROOM_TTL_MS = 6 * 3600 * 1000;
+const BOSS_HITS = 15; // correct answers the whole team needs to defeat a boss
+const MOVES = ['thunder', 'fire', 'tornado', 'stars', 'ice', 'dino']; // attack moves kids pick
 
 function newCode(rnd = Math.random) {
   let s = '';
@@ -1114,11 +1127,15 @@ function cleanProfile(p = {}) {
       hat: typeof a.hat === 'string' ? a.hat.slice(0, 12) : null,
       cape: typeof a.cape === 'string' ? a.cape.slice(0, 12) : null,
       held: typeof a.held === 'string' ? a.held.slice(0, 12) : null,
+      glasses: typeof a.glasses === 'string' ? a.glasses.slice(0, 12) : null,
+      acc: typeof a.acc === 'string' ? a.acc.slice(0, 12) : null,
       number: Number.isInteger(a.number) && a.number >= 0 && a.number <= 99 ? a.number : '',
     },
     pet: typeof p.pet === 'string' ? p.pet.slice(0, 16) : 'divi',
     petStage: [0, 1, 2].includes(p.petStage) ? p.petStage : 0,
     levels: { div: lv(p.levels && p.levels.div), frac: lv(p.levels && p.levels.frac) },
+    gentle: !!p.gentle, // first-fractions mode
+    move: MOVES.includes(p.move) ? p.move : 'stars',
   };
 }
 
@@ -1137,12 +1154,12 @@ function cleanValue(v) {
 }
 
 // ---------- questions ----------
-function pickConcept(rng, levels, preferMix) {
+function pickConcept(rng, levels, preferMix, gentle) {
   const pool = [];
   for (const c of Object.keys(CONCEPTS)) {
     const dom = CONCEPTS[c].domain; const lv = conceptLevels(c);
     if (dom === 'div' && lv.includes(levels.div)) pool.push({ c, level: levels.div });
-    if (dom === 'frac' && lv.includes(levels.frac)) pool.push({ c, level: levels.frac });
+    if (dom === 'frac' && lv.includes(levels.frac) && !(gentle && c === 'frac_parts' && rng.chance(0.75))) pool.push({ c, level: levels.frac });
     const m = Math.min(levels.div, levels.frac);
     if (preferMix && dom === 'mix' && lv.includes(m)) pool.push({ c, level: m }, { c, level: m });
   }
@@ -1153,11 +1170,11 @@ function issueQuestion(state, secrets, pid, { easier = false } = {}) {
   const pl = state.players[pid];
   secrets.qn = (secrets.qn || 0) + 1;
   const rng = makeRng(`${secrets.seed}-${pid}-${secrets.qn}`);
-  const pick = pickConcept(rng, pl.levels, true);
+  const pick = pickConcept(rng, pl.levels, !pl.gentle, pl.gentle);
   const tier = easier ? 0.1 : 0.3 + rng.next() * 0.6;
-  let q = generate(pick.c, { rng, tier, level: pick.level });
+  let q = generate(pick.c, { rng, tier, level: pick.level, gentle: pl.gentle });
   // keep team play brisk: prefer tap/keypad questions over long drag puzzles
-  for (let i = 0; i < 6 && ['share', 'order'].includes(q.input); i++) q = generate(pick.c, { rng, tier, level: pick.level });
+  for (let i = 0; i < 6 && ['share', 'order'].includes(q.input); i++) q = generate(pick.c, { rng, tier, level: pick.level, gentle: pl.gentle });
   const qid = `${secrets.qn}`;
   secrets.answers[pid] = { qid, q, tries: 0 };
   pl.q = { ...publicQuestion(q), qid };
@@ -1206,7 +1223,7 @@ function startGame(state, secrets) {
   if (state.mode === 'boss') {
     const names = [['Count Crumble', '碎碎伯爵'], ['The Pizza Hydra', '披薩九頭蛇'], ['Muddle the Mixed-up Golem', '糊塗石像巨人'], ['Chaos Infinity Dragon', '混沌無限龍']];
     const i = rng.int(0, 3);
-    state.game = { hp: 6 * n, maxHp: 6 * n, boss: names[i], world: ['village', 'forest', 'kingdom', 'legend'][i] };
+    state.game = { hp: BOSS_HITS, maxHp: BOSS_HITS, boss: names[i], world: ['village', 'forest', 'kingdom', 'legend'][i], combo: 0, bestCombo: 0 };
   } else if (state.mode === 'treasure') {
     const tiles = 16; const need = 4;
     secrets.treasure = rng.shuffle([...Array(tiles).keys()]).slice(0, need);
@@ -1327,6 +1344,9 @@ async function apply(state, secrets, body, now) {
         state.game.turn = nextRelayTurn(state); if (state.game.turn !== pid) issueQuestion(state, secrets, state.game.turn);
       }
       return { out: { ok: true } };
+    case 'setMove': // pick an attack move (any time)
+      if (!MOVES.includes(body.move)) return { readOnly: true, out: { ok: false, error: 'bad' } };
+      me.move = body.move; return { out: { ok: true } };
     case 'setMode':
       if (pid !== state.hostId || state.status !== 'lobby' || !MODES.includes(body.mode)) return { readOnly: true, out: { ok: false, error: 'denied' } };
       state.mode = body.mode; return { out: { ok: true } };
@@ -1352,7 +1372,14 @@ async function apply(state, secrets, body, now) {
         const firstTry = slot.tries === 0;
         me.correct++;
         me.last = { ok: true, firstTry, t: now };
-        if (state.mode === 'boss') { const dmg = firstTry ? 2 : 1; state.game.hp = Math.max(0, state.game.hp - dmg); me.damage += dmg; log(state, { t: now, type: 'hit', who: pid, dmg }); }
+        if (state.mode === 'boss') {
+          const move = MOVES.includes(body.move) ? body.move : me.move;
+          me.move = move;
+          state.game.hp = Math.max(0, state.game.hp - 1); me.damage += 1;
+          state.game.combo = (state.game.combo || 0) + 1; state.game.bestCombo = Math.max(state.game.bestCombo || 0, state.game.combo);
+          state.game.hits = (state.game.hits || 0) + 1;
+          log(state, { t: now, type: 'hit', who: pid, dmg: 1, move, crit: firstTry, combo: state.game.combo, n: state.game.hits });
+        }
         if (state.mode === 'relay') { state.game.leg++; log(state, { t: now, type: 'leg', who: pid }); }
         if (state.mode === 'treasure' || state.mode === 'build') { me.pendingPick = true; me.q = null; delete secrets.answers[pid]; }
         if (checkWin(state)) { finishGame(state); return { out: { ok: true, correct: true, firstTry } }; }
@@ -1361,6 +1388,7 @@ async function apply(state, secrets, body, now) {
         return { out: { ok: true, correct: true, firstTry } };
       }
       slot.tries++;
+      if (state.mode === 'boss' && state.game) state.game.combo = 0; // a miss resets the team combo
       if (slot.tries < 2) { me.last = { ok: false, retry: true, t: now }; return { out: { ok: true, correct: false, retry: true, misconception: res.misconception || null } }; }
       // second miss: reveal, then an easier question (relay passes the baton, no penalty)
       const reveal = slot.q.answer; const steps = slot.q.steps;

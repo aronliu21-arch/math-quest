@@ -4,7 +4,7 @@ import { S, loadProfiles, newProfile, save, selectProfile, applySettings, worldU
 import * as db from './db.js';
 import { t, L, setLang, getLang } from './i18n.js';
 import { el, $, $$, bindActions, toast, modal, progressBar, esc, langToggleHTML, confetti } from './ui.js';
-import { heroSVG, petSVG, petName, sceneSVG, itemSVG, HAIR_STYLES, HAIR_COLORS, SKINS, OUTFITS, BADGES, STARTER_PETS, PETS } from './art.js';
+import { heroSVG, petSVG, petName, sceneSVG, itemSVG, GLASSES, ACCESSORIES, STARTER_HATS, HAIR_STYLES, HAIR_COLORS, SKINS, OUTFITS, BADGES, STARTER_PETS, PETS } from './art.js';
 import { initAudio, startMusic, stopMusic, sfx } from './audio.js';
 import { NAME_IDEAS, XP_FOR_LEVEL } from './content.js';
 import { levelOf, skillMastery } from './adaptive.js';
@@ -104,6 +104,15 @@ register('create', () => {
           <div class="opt"><b>#</b><div class="chips">${['', 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button class="chip small ${String(draft.avatar.number) === String(n) ? 'on' : ''}" data-act="set" data-arg="number|${n}">${n === '' ? '–' : n}</button>`).join('')}</div></div>
         </div></div>`;
     } else if (step === 2) {
+      const row = (key, opts, labelFn) => `<div class="hair-row">${opts.map((o) => `<button class="hair-btn acc-btn ${(draft.avatar[key] || '') === o ? 'on' : ''}" data-act="set" data-arg="${key}|${o}" aria-label="${o || 'none'}">${o ? heroSVG({ ...draft.avatar, [key]: o }, { size: 56, crop: key === 'acc' ? 'neck' : 'head' }) : '<span class="none-x">✕</span>'}</button>`).join('')}</div>`;
+      body = `<h2>${L({ en: 'Add some style!', zh: '幫勇者加點造型！' })}</h2>
+        <div class="designer"><div class="preview">${heroSVG(draft.avatar, { size: 150, glow: true })}<div class="name-badge" style="background:${draft.avatar.badge}">${esc(draft.name)}</div></div>
+        <div class="opts">
+          <div class="opt"><b>${L({ en: 'Hat', zh: '帽子' })}</b>${row('hat', ['', ...STARTER_HATS])}</div>
+          <div class="opt"><b>${L({ en: 'Glasses', zh: '眼鏡' })}</b>${row('glasses', ['', ...Object.keys(GLASSES)])}</div>
+          <div class="opt"><b>${L({ en: 'Extra', zh: '配件' })}</b>${row('acc', ['', ...Object.keys(ACCESSORIES)])}</div>
+        </div></div>`;
+    } else if (step === 3) {
       body = `<h2>${t('pickPet')}</h2><div class="pet-pick">${STARTER_PETS.map((s) => `<button class="pet-card card ${draft.pet === s ? 'on' : ''}" data-act="pet" data-arg="${s}">${petSVG(s, 0, { size: 110 })}<b>${petName(s, 0, getLang())}</b></button>`).join('')}</div>`;
     } else {
       const lvBtns = (k) => [1, 2, 3].map((n) => `<button class="chip ${draft[k] === n ? 'on' : ''}" data-act="lvl" data-arg="${k}|${n}">${t(['beginner', 'intermediate', 'advanced'][n - 1])}</button>`).join('');
@@ -112,10 +121,10 @@ register('create', () => {
         <div class="lv-row"><b>🍕 ${t('fractions')}</b><div class="chips">${lvBtns('startFrac')}</div></div>
         <p class="small">${t('startLevelsHelp')}</p>`;
     }
-    const canNext = (step === 0 && draft.name.trim()) || step === 1 || (step === 2 && draft.pet) || step === 3;
-    box.innerHTML = `<div class="steps-dots">${[0, 1, 2, 3].map((i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>${body}
+    const canNext = (step === 0 && draft.name.trim()) || step === 1 || step === 2 || (step === 3 && draft.pet) || step === 4;
+    box.innerHTML = `<div class="steps-dots">${[0, 1, 2, 3, 4].filter((i) => i < 4 || draft.style !== 'little').map((i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>${body}
       <div class="row gap between"><button class="btn ghost" data-act="prev">${t('back')}</button>
-      <button class="btn big" data-act="next" ${canNext ? '' : 'disabled'}>${step === 3 || (step === 2 && draft.style === 'little') ? t('letsGo') : t('next')} ▶</button></div>`;
+      <button class="btn big" data-act="next" ${canNext ? '' : 'disabled'}>${step === 4 || (step === 3 && draft.style === 'little') ? t('letsGo') : t('next')} ▶</button></div>`;
     const inp = $('.name-input', box);
     if (inp) inp.addEventListener('input', () => { draft.name = inp.value; $('[data-act="next"]', box).disabled = !draft.name.trim(); });
   };
@@ -124,12 +133,12 @@ register('create', () => {
     name: (n) => { draft.name = n; draw(); },
     lang: (l) => { draft.lang = l; setLang(l); draw(); },
     preset: (k) => { const v = PRESETS[k]; draft.preset = k; draft.avatar = { ...draft.avatar, hat: null, ...v.avatar }; draft.style = v.style; draft.startDiv = v.startDiv; draft.startFrac = v.startFrac; draw(); },
-    set: (arg) => { const [k, v] = arg.split('|'); draft.avatar[k] = k === 'number' ? (v === '' ? '' : +v) : v; draw(); },
+    set: (arg) => { const [k, v] = arg.split('|'); draft.avatar[k] = k === 'number' ? (v === '' ? '' : +v) : (['hat', 'glasses', 'acc'].includes(k) && !v ? null : v); draw(); },
     pet: (s) => { draft.pet = s; draw(); },
     lvl: (arg) => { const [k, v] = arg.split('|'); draft[k] = +v; draw(); },
     prev: () => { if (step === 0) go('profiles'); else { step--; draw(); } },
     next: async () => {
-      if (step < 3 && !(step === 2 && draft.style === 'little')) { step++; draw(); return; }
+      if (step < 4 && !(step === 3 && draft.style === 'little')) { step++; draw(); return; }
       const p = newProfile({ name: draft.name.trim(), avatar: draft.avatar, pet: draft.pet, lang: draft.lang, startDiv: draft.startDiv, startFrac: draft.startFrac, style: draft.style });
       await save(p); await selectProfile(p); confetti(); sfx('levelup');
       go(p.style === 'little' ? 'little' : 'hub');

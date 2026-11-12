@@ -25,13 +25,15 @@ async function newDevice(browser, errs, name, opts = {}) {
   pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errs.push(`${name} console: ${m.text()}`); });
   return { ctx, pg };
 }
-async function createHero(pg, name, { hair = 'short', pet = 0, lang = null, div = 1, frac = 1 } = {}) {
+async function createHero(pg, name, { hair = 'short', pet = 0, lang = null, div = 1, frac = 1, style = null } = {}) {
   await pg.click('.profile-card.new');
   await pg.fill('.name-input', name);
   if (lang) await pg.click(`[data-act="lang"][data-arg="${lang}"]`);
   await pg.click('[data-act="next"]');
   await pg.click(`[data-act="set"][data-arg="hair|${hair}"]`);
   await pg.click('[data-act="next"]');
+  if (style) { await pg.click(`[data-act="set"][data-arg="hat|${style.hat}"]`); await pg.click(`[data-act="set"][data-arg="glasses|${style.glasses}"]`); await pg.click(`[data-act="set"][data-arg="acc|${style.acc}"]`); }
+  await pg.click('[data-act="next"]'); // style step (hats, glasses, extras)
   await pg.click(`.pet-card >> nth=${pet}`); await pg.click('[data-act="next"]');
   if (div > 1) await pg.click(`[data-act="lvl"][data-arg="startDiv|${div}"]`);
   if (frac > 1) await pg.click(`[data-act="lvl"][data-arg="startFrac|${frac}"]`);
@@ -59,7 +61,9 @@ async function solveUntilResults(pg, max = 20) {
     console.log('Profiles + division mission');
     const { ctx, pg } = await newDevice(browser, errs, 'tablet');
     await pg.goto(BASE + '?nosw'); await pg.click('.start-btn');
-    await createHero(pg, 'Ava', { hair: 'ponytail', pet: 0 });
+    await createHero(pg, 'Ava', { hair: 'ponytail', pet: 0, style: { hat: 'bow', glasses: 'star', acc: 'necklace' } });
+    const look = await pg.evaluate(() => window.__test.S.profile.avatar);
+    check(look.hat === 'bow' && look.glasses === 'star' && look.acc === 'necklace', 'hero creator saves hat, glasses and extra');
     await createHero2();
     async function createHero2() { await pg.click('[data-act="settings"]'); await pg.click('[data-act="switch"]'); await createHero(pg, 'Ben', { hair: 'spiky', pet: 1, div: 2 }); }
     check((await pg.evaluate(() => window.__test.state().profiles)) === 2, 'two separate profiles created');

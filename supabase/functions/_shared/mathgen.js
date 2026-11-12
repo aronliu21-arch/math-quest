@@ -352,9 +352,20 @@ G.div_multistep = (rng, t) => {
 // ================== FRACTIONS ==================
 const SHAPES = ['pie', 'bar', 'rect'];
 
-G.frac_identify = (rng, t) => {
-  const d = t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([2, 3, 4, 5, 6, 8]);
-  const n = rng.int(1, d - 1); const shape = rng.pick(SHAPES);
+G.frac_identify = (rng, t, lvl, o = {}) => {
+  // gentle = first fractions: halves, thirds, quarters; mostly one piece; always a picture
+  const d = o.gentle ? (t < 0.4 ? rng.pick([2, 2, 4]) : rng.pick([2, 3, 4])) : t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([2, 3, 4, 5, 6, 8]);
+  const n = o.gentle && (t < 0.6 || rng.chance(0.5)) ? 1 : rng.int(1, d - 1); const shape = o.gentle ? rng.pick(['pie', 'pie', 'bar']) : rng.pick(SHAPES);
+  if (o.gentle) {
+    const what = shape === 'pie' ? T('pizza', '披薩') : T('chocolate bar', '巧克力');
+    return finishMC({
+      id: `g${n}/${d}${shape[0]}`, answer: fr(n, d), accept: 'exact', data: { expr: `${n}/${d}` },
+      prompt: T(`The ${what.en} is cut into ${d} equal pieces. What fraction is colored?`, `${what.zh}切成 ${d} 塊一樣大的。塗色的是幾分之幾？`),
+      visual: { type: shape, n, d },
+      hints: [T(`${d} pieces in all, so the bottom number is ${d}. How many are colored?`, `全部有 ${d} 塊，所以下面是 ${d}。塗色的有幾塊？`)],
+      steps: [T(`${n} colored piece${n > 1 ? 's' : ''} out of ${d} → [${n}/${d}]`, `${d} 塊裡塗了 ${n} 塊 → [${n}/${d}]`)], tip: 'fraction',
+    }, rng, [fr(d - n, d), fr(n, d + 1), fr(d, n), fr(n, d === 2 ? 4 : 2)], 3);
+  }
   return finishMC({
     id: `${n}/${d}${shape[0]}`, answer: fr(n, d), accept: 'exact', data: { expr: `${n}/${d}` },
     prompt: T('What fraction is colored?', '塗色的部分是幾分之幾？'),
@@ -367,9 +378,9 @@ G.frac_identify = (rng, t) => {
   }, rng, [fr(d - n, d), fr(n, d - n || 1), fr(n, d + 1), fr(n + 1, d), fr(d, n)]);
 };
 
-G.frac_shade = (rng, t) => {
-  const d = t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([3, 4, 5, 6, 8]);
-  const n = rng.int(1, d - 1); const shape = rng.pick(SHAPES);
+G.frac_shade = (rng, t, lvl, o = {}) => {
+  const d = o.gentle ? rng.pick([2, 3, 4]) : t < 0.5 ? rng.pick([2, 3, 4]) : rng.pick([3, 4, 5, 6, 8]);
+  const n = o.gentle && (t < 0.6 || rng.chance(0.5)) ? 1 : rng.int(1, d - 1); const shape = o.gentle ? rng.pick(['pie', 'bar']) : rng.pick(SHAPES);
   const food = shape === 'pie' ? T('pizza', '披薩') : shape === 'bar' ? T('chocolate bar', '巧克力') : T('garden', '花園');
   return {
     id: `${n}/${d}${shape[0]}`, input: 'shade', shape, d, answer: num(n), accept: 'exact', data: { expr: `${n}` },
@@ -386,9 +397,9 @@ const LABEL = {
   left: T('How many parts are left over', '還剩下幾份'),
 };
 
-G.frac_parts = (rng, t) => {
-  const d = rng.int(2, t < 0.5 ? 6 : 10); const n = rng.int(1, d - 1);
-  const v = rng.pick(['den', 'num', 'cake', 'meaning']);
+G.frac_parts = (rng, t, lvl, o = {}) => {
+  const d = o.gentle ? rng.pick([2, 3, 4]) : rng.int(2, t < 0.5 ? 6 : 10); const n = o.gentle ? 1 + (rng.chance(0.3) ? rng.int(0, d - 2) : 0) : rng.int(1, d - 1);
+  const v = o.gentle ? 'cake' : rng.pick(['den', 'num', 'cake', 'meaning']);
   if (v === 'den' || v === 'num') {
     const isDen = v === 'den';
     return finishMC({
@@ -770,12 +781,12 @@ export function conceptLevels(concept) {
   return Array.isArray(L) ? L : [L];
 }
 
-export function generate(concept, { seed, rng, tier = 0.5, level } = {}) {
+export function generate(concept, { seed, rng, tier = 0.5, level, gentle = false } = {}) {
   const r = rng || makeRng(seed ?? Math.floor(Math.random() * 2 ** 32));
   const gen = G[concept];
   if (!gen) throw new Error('unknown concept ' + concept);
   const lv = level ?? Math.max(...conceptLevels(concept));
-  const q = gen(r, Math.max(0, Math.min(1, tier)), lv);
+  const q = gen(r, Math.max(0, Math.min(1, tier)), lv, { gentle });
   q.concept = q.concept || concept;
   // generators that fall back to another concept keep their own concept name
   if (!q.id.includes(':')) q.id = `${concept}:${q.id}`;

@@ -6,7 +6,7 @@ import { t, L, getLang } from './i18n.js';
 import { el, $, $$, bindActions, toast, modal, progressBar, esc } from './ui.js';
 import { heroSVG, sceneSVG } from './art.js';
 import { CONCEPTS, skillOf, conceptLevels } from '../shared/mathgen.js';
-import { conceptMastery, levelOf, skillMastery, suggestions, newLearning } from './adaptive.js';
+import { conceptMastery, levelOf, skillMastery, suggestions, newLearning, isGentle } from './adaptive.js';
 import { sfx } from './audio.js';
 import { LITTLE_KINDS, LITTLE_NAMES } from '../shared/littlegen.js';
 
@@ -106,6 +106,7 @@ register('parent', ({ tab = 'dash', pid } = {}) => {
         <div class="set-row"><b>${t('hintMode')}</b><select data-set="hintMode"><option value="auto" ${p.settings.hintMode === 'auto' ? 'selected' : ''}>${t('hintAuto')}</option><option value="ask" ${p.settings.hintMode === 'ask' ? 'selected' : ''}>${t('hintAsk')}</option></select></div>
         <div class="set-row"><b>${t('breakEvery')}</b><select data-set="breakEvery">${[0, 2, 3, 4, 5, 6].map((n) => `<option value="${n}" ${p.settings.breakEvery === n ? 'selected' : ''}>${n || t('off')}</option>`).join('')}</select></div>
         <label class="toggle"><input type="checkbox" data-set="timed" ${p.settings.timed ? 'checked' : ''}> ${t('timedOn')}</label>
+        <label class="toggle"><input type="checkbox" data-set="fracGentle" ${isGentle(p) ? 'checked' : ''}> ${L({ en: 'First fractions: halves, thirds and quarters with pictures, few definition questions', zh: '分數入門：只出一半、三分之一、四分之一的圖片題，少考名詞定義' })}</label>
         <button class="btn ghost danger" data-act="del">🗑 ${t('deleteHero')}</button>
       </div>
       <p class="small">${t('deviceNote')}</p>`;
