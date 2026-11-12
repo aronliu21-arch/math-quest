@@ -35,12 +35,12 @@ async function device(b, name, errs, vp = { width: 1024, height: 768 }) {
   await A.pg.click('[data-act="team"]'); await A.pg.waitForTimeout(600);
   await A.pg.click('[data-act="create"]'); await A.pg.waitForTimeout(800);
   const code = await A.pg.evaluate(() => window.__test.mpState().code);
-  check(/^[A-Z2-9]{6}$/.test(code), 'room created with 6-character code ' + code);
+  check(/^[0-9]{4}$/.test(code), 'room created with 4-digit code ' + code);
   await A.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '20-lobby-host.png') });
   // B joins by typing the code on the on-screen keypad
   await B.pg.click('[data-act="team"]'); await B.pg.waitForTimeout(600);
   for (const ch of code) await B.pg.click(`[data-act="ck"][data-arg="${ch}"]`);
-  await B.pg.click('[data-act="join"]'); await B.pg.waitForTimeout(1200);
+  await B.pg.waitForTimeout(1500); // the 4th digit joins automatically
   check((await A.pg.evaluate(() => window.__test.mpState().order.length)) === 2, 'host lobby shows the joined player');
   await B.pg.screenshot({ path: path.join(__dirname, '..', 'test-output', '21-lobby-guest-phone.png') });
   await A.pg.click('[data-act="start"]'); await A.pg.waitForTimeout(1200);

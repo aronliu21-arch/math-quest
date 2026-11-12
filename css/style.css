@@ -393,9 +393,10 @@ input, select, button { font-family: inherit; }
 .qr { background: #fff; padding: 10px; border: 3px solid var(--ink); border-radius: 14px; }
 .qr svg { display: block; width: 180px; height: 180px; }
 .code-input { display: flex; gap: 6px; justify-content: center; }
-.code-input span { width: 52px; height: 64px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; display: grid; place-items: center; font-size: 32px; font-weight: 900; }
-.code-keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-width: 560px; }
-.code-keys .key { min-height: 52px; font-size: 22px; }
+.code-input span { width: 72px; height: 84px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; display: grid; place-items: center; font-size: 48px; font-weight: 900; }
+.code-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-width: 520px; width: 100%; }
+.code-keys .key { min-height: 72px; font-size: 34px; }
+.btn.pulse { animation: pulse 1s ease-in-out infinite; }
 .lobby { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .lobby .pl { display: flex; flex-direction: column; align-items: center; padding: 8px; min-width: 120px; }
 .lobby .pl.off { opacity: .5; }
@@ -457,7 +458,6 @@ input, select, button { font-family: inherit; }
   .mnode .ni { font-size: 24px; }
   .mnode.t-boss { width: 74px; height: 74px; }
   .mnode .nl { display: none; }
-  .code-keys { grid-template-columns: repeat(6, 1fr); }
   .code-input span { width: 42px; height: 54px; font-size: 26px; }
 }
 @media (max-height: 520px) and (orientation: landscape) {

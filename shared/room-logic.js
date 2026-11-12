@@ -4,7 +4,8 @@
 import { makeRng } from './rng.js';
 import { generate, checkAnswer, publicQuestion, CONCEPTS, conceptLevels } from './mathgen.js';
 
-export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I/L
+export const CODE_ALPHABET = '0123456789'; // 4-digit number: easy for kids to type
+export const CODE_LENGTH = 4;
 export const MODES = ['boss', 'treasure', 'relay', 'build'];
 export const MAX_PLAYERS = 4;
 export const MIN_PLAYERS = 2;
@@ -13,10 +14,10 @@ export const ROOM_TTL_MS = 6 * 3600 * 1000;
 
 export function newCode(rnd = Math.random) {
   let s = '';
-  for (let i = 0; i < 6; i++) s += CODE_ALPHABET[Math.floor(rnd() * CODE_ALPHABET.length)];
+  for (let i = 0; i < CODE_LENGTH; i++) s += CODE_ALPHABET[Math.floor(rnd() * CODE_ALPHABET.length)];
   return s;
 }
-export const validCode = (c) => typeof c === 'string' && c.length === 6 && [...c].every((ch) => CODE_ALPHABET.includes(ch));
+export const validCode = (c) => typeof c === 'string' && c.length === CODE_LENGTH && [...c].every((ch) => CODE_ALPHABET.includes(ch));
 
 function randHex(bytes = 16) {
   const a = new Uint8Array(bytes); crypto.getRandomValues(a);
@@ -190,7 +191,7 @@ function checkWin(state) {
 export async function handle(db, body, now = Date.now()) {
   const action = body && body.action;
   if (action === 'create') {
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 20; i++) { // retry on the rare clash with an open room
       const r = await createRoom(body.profile, now);
       if (await db.insert(r.state.code, r.state, r.secrets)) return { ok: true, state: r.state, playerId: r.playerId, token: r.token };
     }

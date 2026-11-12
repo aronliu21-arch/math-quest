@@ -1,5 +1,5 @@
 // Service worker: makes single-player work offline after the first visit.
-const VERSION = 'mq-v4';
+const VERSION = 'mq-v5';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
   './js/app.js', './js/router.js', './js/state.js', './js/db.js', './js/i18n.js', './js/ui.js', './js/art.js', './js/audio.js',

@@ -1,4 +1,4 @@
-// Online co-op: private rooms with 6-character codes and QR joining,
+// Online co-op: private rooms with 4-digit codes and QR joining,
 // shared lobby, boss battles, treasure hunts, relays and team building.
 import { register, go } from './router.js';
 import { S, save, grantRewards, checkAchievements, skillLevel } from './state.js';
@@ -9,7 +9,7 @@ import { sfx, speak, stopMusic, startMusic } from './audio.js';
 import { createNet, detectBackend } from './net.js';
 import { renderInput } from './inputs.js';
 import { visualHTML } from './mission.js';
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // must match shared/room-logic.js
+const CODE_LEN = 4; // must match shared/room-logic.js
 import { qrSVG } from './qr.js';
 import { fmt } from '../shared/fraction.js';
 
@@ -25,7 +25,7 @@ register('mp', async ({ code: autoCode } = {}) => {
   const backend = await detectBackend();
   const online = navigator.onLine !== false;
   const sess = p.mpSession;
-  let codeEntry = autoCode ? String(autoCode).toUpperCase().slice(0, 6) : '';
+  let codeEntry = autoCode ? String(autoCode).replace(/\D/g, '').slice(0, CODE_LEN) : '';
   const node = el(`<div class="mp-screen"><div class="scene-bg">${sceneSVG('kingdom')}</div>
     <header class="topbar"><button class="btn-icon" data-act="back">←</button><h1>🌐 ${t('mpTitle')}</h1></header>
     <div class="mp-panel card"></div></div>`);
@@ -38,25 +38,27 @@ register('mp', async ({ code: autoCode } = {}) => {
       ${sess ? `<button class="btn big" data-act="rejoin">↻ ${t('continue')}: ${sess.code}</button>` : ''}
       <button class="btn big" data-act="create">🏰 ${t('createRoom')}</button>
       <div><b>${t('joinRoom')}</b> — ${t('enterCode')}</div>
-      <div class="code-input">${Array.from({ length: 6 }, (_, i) => `<span>${codeEntry[i] || ''}</span>`).join('')}</div>
-      <div class="code-keys">${[...CODE_ALPHABET].map((c) => `<button class="key" data-act="ck" data-arg="${c}">${c}</button>`).join('')}<button class="key muted" data-act="cdel">⌫</button></div>
-      <button class="btn big" data-act="join" ${codeEntry.length === 6 ? '' : 'disabled'}>${t('joinRoom')} ▶</button>
+      <div class="code-input">${Array.from({ length: CODE_LEN }, (_, i) => `<span>${codeEntry[i] || ''}</span>`).join('')}</div>
+      <div class="code-keys">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((c) => `<button class="key" data-act="ck" data-arg="${c}">${c}</button>`).join('')}<button class="key muted" data-act="cdel">⌫</button></div>
+      <button class="btn big" data-act="join" ${codeEntry.length === CODE_LEN ? '' : 'disabled'}>${t('joinRoom')} ▶</button>
       <p class="small">${t('mpNeedsInternet')}</p>`;
   };
   draw();
   const net = backend ? await createNet() : null;
+  let entering = false; // never join twice (auto-join + a tap on the button)
   const enter = async (fn) => {
+    if (entering) return; entering = true;
     try {
       const out = await fn();
-      if (!out.ok) { toast(errText(out.error), 'info', 2600); return; }
+      if (!out.ok) { toast(errText(out.error), 'info', 2600); if (out.error === 'notFound') { codeEntry = ''; draw(); } return; }
       p.mpSession = { code: out.state.code, playerId: out.playerId, token: out.token };
       await save(p);
       go('mproom', { net, code: out.state.code, state: out.state });
-    } catch (e) { toast(t('reconnecting'), 'info'); }
+    } catch (e) { toast(t('reconnecting'), 'info'); } finally { entering = false; }
   };
   bindActions(node, {
     back: () => go('hub'),
-    ck: (c) => { if (codeEntry.length < 6) codeEntry += c; draw(); },
+    ck: (c) => { if (codeEntry.length >= CODE_LEN) return; codeEntry += c; draw(); if (codeEntry.length === CODE_LEN) setTimeout(() => node.querySelector('[data-act="join"]')?.click(), 250); }, // 4th number joins right away
     cdel: () => { codeEntry = codeEntry.slice(0, -1); draw(); },
     create: () => enter(() => net.call({ action: 'create', profile: myProfilePayload(p) })),
     join: () => enter(() => net.call({ action: 'join', code: codeEntry, profile: myProfilePayload(p) })),
@@ -65,7 +67,7 @@ register('mp', async ({ code: autoCode } = {}) => {
       return out.ok ? { ...out, playerId: sess.playerId, token: sess.token } : out;
     }),
   });
-  if (autoCode && codeEntry.length === 6 && net) {
+  if (autoCode && codeEntry.length === CODE_LEN && net) {
     if (sess && sess.code === codeEntry) setTimeout(() => node.querySelector('[data-act="rejoin"]')?.click(), 50);
     else setTimeout(() => node.querySelector('[data-act="join"]')?.click(), 50);
   }

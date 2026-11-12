@@ -5,7 +5,7 @@
 -- broadcasts public state over Realtime.
 
 create table if not exists public.rooms (
-  code text primary key check (code ~ '^[A-Z0-9]{6}$'),
+  code text primary key check (code ~ '^[0-9]{4}$'),
   state jsonb not null,
   version integer not null default 1,
   updated_at timestamptz not null default now()

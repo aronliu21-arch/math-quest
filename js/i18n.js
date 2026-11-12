@@ -235,7 +235,7 @@ export const STR = {
   createRoom: ['Create a room', '建立房間'],
   joinRoom: ['Join a room', '加入房間'],
   roomCode: ['Room code', '房間代碼'],
-  enterCode: ['Enter the 6-character code', '輸入 6 位代碼'],
+  enterCode: ['Type the 4 numbers', '輸入 4 個數字'],
   scanQr: ['Scan to join', '掃描加入'],
   waitingPlayers: ['Waiting for friends… (2–4 players)', '等待朋友加入…（2–4 人）'],
   startGame: ['Start adventure', '開始冒險'],

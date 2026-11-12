@@ -9,7 +9,7 @@ const prof = (name, div = 1, frac = 1) => ({ name, avatar: { hair: 'short' }, pe
 async function setup(players = 2, mode = 'boss') {
   const db = memoryDb(); let now = 1_000_000;
   const c = await handle(db, { action: 'create', profile: prof('A') }, now);
-  ok(c.ok && /^[A-HJ-NP-Z2-9]{6}$/.test(c.state.code), 'room created with valid 6-char code');
+  ok(c.ok && /^[0-9]{4}$/.test(c.state.code), 'room created with a 4-digit code');
   const ps = [{ id: c.playerId, token: c.token }];
   for (let i = 1; i < players; i++) {
     const j = await handle(db, { action: 'join', code: c.state.code.toLowerCase(), profile: prof('P' + i, 2, 3) }, now);

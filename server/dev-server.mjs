@@ -44,7 +44,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify(out));
       return;
     }
-    const ev = url.pathname.match(/^\/api\/room\/([A-Z0-9]{6})\/events$/);
+    const ev = url.pathname.match(/^\/api\/room\/([0-9]{4})\/events$/);
     if (ev) {
       const code = ev[1];
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' });

@@ -111,7 +111,7 @@ function p2pNet() {
     if (out.state) broadcast(out.state);
     return out;
   };
-  function listen(code) {
+  function listen(code, retries) {
     // Register this device under the room's id so guests can find it. If the id is
     // still held from a moment ago (page reload), keep retrying for a little while.
     return new Promise((resolve, reject) => {
@@ -120,16 +120,16 @@ function p2pNet() {
         const peer = new window.Peer(peerId(code), opts);
         peer.on('open', () => resolve(peer));
         peer.on('error', (e) => {
-          if (e.type === 'unavailable-id' && tries++ < 8) { peer.destroy(); setTimeout(attempt, 2500); return; }
+          if (e.type === 'unavailable-id' && tries++ < retries) { peer.destroy(); setTimeout(attempt, 2500); return; }
           if (!host || host.peer !== peer) reject(e);
         });
       };
       attempt();
     });
   }
-  async function startHosting(code, db) {
+  async function startHosting(code, db, retries = 0) {
     host = { code, db, peer: null, conns: new Set() };
-    host.starting = listen(code).then((peer) => {
+    host.starting = listen(code, retries).then((peer) => {
       host.peer = peer;
       peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) { /* ignore */ } });
       peer.on('connection', (conn) => {
@@ -153,7 +153,7 @@ function p2pNet() {
       const saved = JSON.parse(localStorage.getItem(HOST_KEY) || 'null');
       if (!saved || saved.code !== code || Date.now() - saved.row.state.updated > ROOM_TTL_MS) return false;
       const db = memoryDb(); db.rooms.set(code, saved.row);
-      startHosting(code, db).catch(() => {});
+      startHosting(code, db, 8).catch(() => {}); // our own old registration may linger a few seconds
       return true;
     } catch (e) { return false; }
   }
@@ -216,7 +216,7 @@ function p2pNet() {
     async call(body) {
       const code = String(body.code || '').toUpperCase();
       if (body.action === 'create') {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 8; i++) { // a number already in use by another family → just pick another
           const db = memoryDb();
           const out = await handle(db, body);
           if (!out.ok) return out;
